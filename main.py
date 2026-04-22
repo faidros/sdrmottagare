@@ -9,11 +9,12 @@ import subprocess
 
 MENU = """
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.0           ║
+║         SDR Mottagare v1.1           ║
 ╠══════════════════════════════════════╣
 ║  1. Vädersensorer   (433 MHz)        ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
-║  3. Avsluta                          ║
+║  3. Fartyg AIS      (162 MHz)        ║
+║  4. Avsluta                          ║
 ╚══════════════════════════════════════╝
 """
 
@@ -39,6 +40,12 @@ def check_dependencies():
     except ImportError:
         missing.append("pyrtlsdr →  pip install pyrtlsdr")
 
+    # Kontrollera pyais
+    try:
+        import pyais  # noqa: F401
+    except ImportError:
+        missing.append("pyais    →  pip install pyais")
+
     if missing:
         print("\n⚠️  Följande beroenden saknas:\n")
         for m in missing:
@@ -61,6 +68,9 @@ def main():
             from modes.adsb import run_adsb
             run_adsb()
         elif val == "3":
+            from modes.ais import run_ais
+            run_ais()
+        elif val == "4":
             print("Hejdå!")
             sys.exit(0)
         else:
