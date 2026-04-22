@@ -9,14 +9,15 @@ import subprocess
 
 MENU = """
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.3           ║
+║         SDR Mottagare v1.4           ║
 ╠══════════════════════════════════════╣
 ║  1. Vädersensorer    (433 MHz)       ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
 ║  3. Fartyg AIS       (162 MHz)       ║
 ║  4. ACARS flygdata   (129-132 MHz)   ║
 ║  5. POCSAG/FLEX      (148-932 MHz)   ║
-║  6. Avsluta                          ║
+║  6. Spektrum & Signal (skanner)      ║
+║  7. Avsluta                          ║
 ╚══════════════════════════════════════╝
 """
 
@@ -79,6 +80,9 @@ def main():
             from modes.paging import run_paging
             run_paging()
         elif val == "6":
+            from modes.scanner import run_scanner_mode
+            run_scanner_mode()
+        elif val == "7":
             print("Hejdå!")
             sys.exit(0)
         else:
