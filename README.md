@@ -38,6 +38,18 @@ cd sdrmottagare
 
 ### 2. Installera systemberoenden
 
+Programmet använder två typer av beroenden:
+
+| Typ | Verktyg | Används av |
+|-----|---------|-----------|
+| Systembibliotek | `librtlsdr` | Alla lägen (kommunikation med dongeln) |
+| Externt program | `rtl_433` | Vädersensorer (läge 1) + IoT-avkodare (läge 9) |
+| Python-paket | `pyrtlsdr` | Alla lägen med direkt IQ-läsning (2–9) |
+| Python-paket | `pyModeS` | ADS-B flygplan (läge 2, 1090 MHz) |
+| Python-paket | `pyais` | Fartyg AIS (läge 3, 162 MHz) |
+| Python-paket | `numpy` | All signalbehandling |
+| Python-paket | `sounddevice` | Röstmottagning och järnväg (ljud) |
+
 #### macOS
 ```bash
 brew install librtlsdr rtl_433
@@ -78,6 +90,15 @@ source .venv/bin/activate         # macOS/Linux
 # .venv\Scripts\activate          # Windows
 
 pip install -r requirements.txt
+```
+
+`requirements.txt` innehåller:
+```
+pyrtlsdr>=0.3.0    # RTL-SDR-gränssnitt (ADS-B, AIS, ACARS, röst m.fl.)
+pyModeS>=2.10      # ADS-B-avkodning (läge 2: flygplan 1090 MHz)
+pyais>=3.0.0       # AIS-avkodning (läge 3: fartyg 162 MHz)
+numpy>=1.24.0      # Signalbehandling
+sounddevice>=0.4.0 # Ljuduppspelning (röst och järnväg)
 ```
 
 > **Obs macOS/Python 3.14+:** Om du får felmeddelande om `pkg_resources`, kör:
