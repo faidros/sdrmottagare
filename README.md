@@ -217,18 +217,21 @@ sdrmottagare/
 
 ## Rekommenderade frekvenser att börja med
 
-| Signal | Frekvens | Tips |
-|--------|----------|------|
-| Flygplan | 1090 MHz | Fungerar nästan alltid nära en flygplats |
-| Marin nöd | **156.800 MHz** (kanal 16) | Alltid aktiv nära kusten |
-| Flyg guard | **121.500 MHz** | Alltid monitorerad, ibland testtrafik |
-| ACARS | 129.125 MHz | Tätast trafik nära en flygplats |
-| POCSAG | 169.6375 MHz | RAKEL – svenska blåljus |
-| Vädersensor | 433.920 MHz | Kräver att du har en kompatibel sensor |
-| Järnväg nöd | **154.000 MHz** | Alltid aktiv längs svenska järnvägar |
-| LoRaWAN | **868.100 / 868.300 / 868.500 MHz** | Primära EU-kanaler, trafik dygnet runt i städer |
-| Z-Wave | **868.420 MHz** | Aktiv i områden med hemautomation |
-| Smarta mätare | **868.950 MHz** | Wireless M-Bus, aktiv i bostadsområden |
+| Signal | Frekvens | Antenn (λ/4) | Tips |
+|--------|----------|--------------|------|
+| Flygplan ADS-B | 1090 MHz | ~6,9 cm | Fungerar nästan alltid nära en flygplats |
+| Marin nöd | **156.800 MHz** (kanal 16) | ~48 cm | Alltid aktiv nära kusten |
+| Flyg guard | **121.500 MHz** | ~62 cm | Alltid monitorerad, ibland testtrafik |
+| ACARS | 129.125 MHz | ~58 cm | Tätast trafik nära en flygplats |
+| POCSAG | 169.6375 MHz | ~44 cm | RAKEL – svenska blåljus |
+| Vädersensor | 433.920 MHz | ~17 cm | Kräver att du har en kompatibel sensor |
+| Järnväg nöd | **154.000 MHz** | ~49 cm | Alltid aktiv längs svenska järnvägar |
+| LoRaWAN | **868.100 / 868.300 / 868.500 MHz** | ~8,6 cm | Primära EU-kanaler, trafik dygnet runt i städer |
+| Z-Wave | **868.420 MHz** | ~8,6 cm | Aktiv i områden med hemautomation |
+| Smarta mätare | **868.950 MHz** | ~8,6 cm | Wireless M-Bus, aktiv i bostadsområden |
+| Meteor-M2-3 | **137.900 MHz** | ~54 cm (dipol, V-form) | Satellitbilder – fri sikt mot himlen krävs |
+
+> **Tips:** Klipp en trådbit till rätt längd och anslut den till antenningången – en enkel kvartsvågs-monopol ger förvånansvärt bra mottagning för de flesta av dessa signaler.
 
 ---
 
