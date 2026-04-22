@@ -16,6 +16,7 @@ Kör i terminalen och presenterar all information som text.
 | 7 | **Röst flyg/marin** | 118–400 MHz / 156–174 MHz | Lyssna på flygkontroll (AM) och båttrafik (FM) |
 | 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – Trafikverket, SJ, lokförare (FM) |
 | 9 | **📡 IoT-sniffning** | 868 MHz | LoRa, Z-Wave, smarta mätare, larm, dörrklockor (3 lägen) |
+| 10 | **🛰️ Meteor-M2-3** | 137.9 MHz | Vädersatellitbilder – PNG-filer på hårddisken (~1 km/pixel) |
 
 ---
 
@@ -49,10 +50,12 @@ Programmet använder två typer av beroenden:
 | Python-paket | `pyais` | Fartyg AIS (läge 3, 162 MHz) |
 | Python-paket | `numpy` | All signalbehandling |
 | Python-paket | `sounddevice` | Röstmottagning och järnväg (ljud) |
+| Python-paket | `ephem` | Passprediktion för Meteor-M2-3 (läge 10) |
+| Externt program | `satdump` | Meteor-M2-3 LRPT-avkodning → PNG-bilder (läge 10) |
 
 #### macOS
 ```bash
-brew install librtlsdr rtl_433
+brew install librtlsdr rtl_433 satdump
 ```
 
 #### Linux (Debian/Ubuntu/Raspberry Pi)
@@ -99,6 +102,7 @@ pyModeS>=2.10      # ADS-B-avkodning (läge 2: flygplan 1090 MHz)
 pyais>=3.0.0       # AIS-avkodning (läge 3: fartyg 162 MHz)
 numpy>=1.24.0      # Signalbehandling
 sounddevice>=0.4.0 # Ljuduppspelning (röst och järnväg)
+ephem>=4.1         # Passprediktion för Meteor-M2-3 (läge 10)
 ```
 
 > **Obs macOS/Python 3.14+:** Om du får felmeddelande om `pkg_resources`, kör:
@@ -157,6 +161,12 @@ Eller utan att aktivera venv:
 - Z-Wave och smarta mätare är aktiva i bostadsområden, inte utomhus/landsbygd
 - En kortare antenn (~8,6 cm för kvartsvåg vid 868 MHz) fungerar bättre än en 433 MHz-antenn
 
+### Meteor-M2-3: svart bild / inga bilder
+- Antennen är det viktigaste – en 137 MHz dipol (~54 cm per arm) eller turniket-antenn krävs
+- Välj ett pass med hög maxelevation (>30°) för bäst chans
+- Kontrollera att dongeln inte används av annat program under passet
+- SatDump behöver hitta ~50+ synkroniserade LRPT-frames – svaga signaler ger tomma filer
+
 ---
 
 ## Projektstruktur
@@ -175,7 +185,8 @@ sdrmottagare/
     ├── scanner.py         # Spektrumanalysator & frekvensskanner
     ├── voice.py           # Röstmottagning flyg AM / marin FM
     ├── railway.py         # Analogt tågradio 153–156 MHz  (ren Python FM)
-    └── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
+    ├── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
+    └── satellite.py       # Meteor-M2-3 vädersatellitbilder 137.9 MHz  (ephem + satdump)
 ```
 
 ---

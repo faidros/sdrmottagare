@@ -7,7 +7,13 @@ Välj mottagningsläge och justera inställningar (gain, squelch m.m.)
 import sys
 import subprocess
 
-# ── Globala inställningar – delas av alla moduler ─────────────────────────────
+# ── Globala inställningar –             elif val == "9":
+                from modes.iot import run_iot
+                run_iot(settings=SETTINGS)
+            elif val == "10":
+                from modes.satellite import run_satellite
+                run_satellite(settings=SETTINGS)
+            elif val in ("a", "0", "q"):s av alla moduler ─────────────────────────────
 SETTINGS = {
     "gain":         "auto",   # dB eller "auto"
     "squelch_db":   -40,      # dB, används av röstläget
@@ -33,6 +39,7 @@ def menu_text() -> str:
 ║  7. Röst flyg/marin  (AM/FM)         ║
 ║  8. 🚂 Järnväg       (153-156 MHz)   ║
 ║  9. 📡 IoT-sniffning (868 MHz)       ║
+║ 10. 🛰️  Satellit Meteor-M2 (137 MHz)  ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
