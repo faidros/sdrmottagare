@@ -238,8 +238,8 @@ sdrmottagare/
 ├── README.md
 └── modes/
     ├── weather.py         # Vädersensorer 433 MHz  (via rtl_433)
-    ├── adsb.py            # Flygtrafik ADS-B 1090 MHz  (via pyModeS)
-    ├── ais.py             # Fartyg AIS 162 MHz  (ren Python)
+    ├── adsb.py            # Flygtrafik ADS-B 1090 MHz  (via readsb)
+    ├── ais.py             # Fartyg AIS 162 MHz  (via AIS-catcher)
     ├── acars.py           # Flygdata ACARS 129–132 MHz  (ren Python)
     ├── paging.py          # POCSAG & FLEX personsökare  (ren Python)
     ├── scanner.py         # Spektrumanalysator & frekvensskanner
