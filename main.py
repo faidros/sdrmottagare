@@ -9,13 +9,14 @@ import subprocess
 
 MENU = """
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.2           ║
+║         SDR Mottagare v1.3           ║
 ╠══════════════════════════════════════╣
 ║  1. Vädersensorer    (433 MHz)       ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
 ║  3. Fartyg AIS       (162 MHz)       ║
 ║  4. ACARS flygdata   (129-132 MHz)   ║
-║  5. Avsluta                          ║
+║  5. POCSAG/FLEX      (148-932 MHz)   ║
+║  6. Avsluta                          ║
 ╚══════════════════════════════════════╝
 """
 
@@ -75,6 +76,9 @@ def main():
             from modes.acars import run_acars
             run_acars()
         elif val == "5":
+            from modes.paging import run_paging
+            run_paging()
+        elif val == "6":
             print("Hejdå!")
             sys.exit(0)
         else:
