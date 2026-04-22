@@ -152,41 +152,44 @@ def check_dependencies() -> None:
 def main():
     check_dependencies()
 
-    while True:
-        print(menu_text())
-        val = input("Välj alternativ: ").strip().lower()
+    try:
+        while True:
+            print(menu_text())
+            val = input("Välj alternativ: ").strip().lower()
 
-        if val == "1":
-            from modes.weather import run_weather
-            run_weather()
-        elif val == "2":
-            from modes.adsb import run_adsb
-            run_adsb(settings=SETTINGS)
-        elif val == "3":
-            from modes.ais import run_ais
-            run_ais(settings=SETTINGS)
-        elif val == "4":
-            from modes.acars import run_acars
-            run_acars(settings=SETTINGS)
-        elif val == "5":
-            from modes.paging import run_paging
-            run_paging(settings=SETTINGS)
-        elif val == "6":
-            from modes.scanner import run_scanner_mode
-            run_scanner_mode(settings=SETTINGS)
-        elif val == "7":
-            from modes.voice import run_voice
-            run_voice(settings=SETTINGS)
-        elif val == "8":
-            from modes.railway import run_railway
-            run_railway(settings=SETTINGS)
-        elif val in ("s", "i"):
-            show_settings()
-        elif val in ("a", "9", "q"):
-            print("Hejdå!")
-            sys.exit(0)
-        else:
-            print("Ogiltigt val, försök igen.")
+            if val == "1":
+                from modes.weather import run_weather
+                run_weather()
+            elif val == "2":
+                from modes.adsb import run_adsb
+                run_adsb(settings=SETTINGS)
+            elif val == "3":
+                from modes.ais import run_ais
+                run_ais(settings=SETTINGS)
+            elif val == "4":
+                from modes.acars import run_acars
+                run_acars(settings=SETTINGS)
+            elif val == "5":
+                from modes.paging import run_paging
+                run_paging(settings=SETTINGS)
+            elif val == "6":
+                from modes.scanner import run_scanner_mode
+                run_scanner_mode(settings=SETTINGS)
+            elif val == "7":
+                from modes.voice import run_voice
+                run_voice(settings=SETTINGS)
+            elif val == "8":
+                from modes.railway import run_railway
+                run_railway(settings=SETTINGS)
+            elif val in ("s", "i"):
+                show_settings()
+            elif val in ("a", "9", "q"):
+                print("Hejdå!")
+                sys.exit(0)
+            else:
+                print("Ogiltigt val, försök igen.")
+    except KeyboardInterrupt:
+        print("\n\nHejdå!")
 
 
 if __name__ == "__main__":
