@@ -58,10 +58,38 @@ Programmet använder två typer av beroenden:
 brew install librtlsdr rtl_433 satdump
 ```
 
-#### Linux (Debian/Ubuntu/Raspberry Pi)
+#### Linux (Debian/Ubuntu x64)
+
+`satdump` finns inte i standard apt-repot. Enklast på Ubuntu/Debian x64 är att hämta den färdiga `.deb`-filen från [SatDump releases](https://github.com/SatDump/SatDump/releases):
+
+```bash
+# Installera beroenden
+sudo apt update
+sudo apt install librtlsdr-dev rtl-433 python3-venv python3-pip \
+  libfftw3-dev libvolk-dev libpng-dev libjpeg-dev libtiff-dev \
+  libusb-1.0-0 portaudio19-dev
+
+# Ladda ner och installera senaste SatDump-release (kontrollera versionsnummer på releases-sidan)
+wget https://github.com/SatDump/SatDump/releases/download/1.2.2/satdump_1.2.2_amd64.deb
+sudo dpkg -i satdump_1.2.2_amd64.deb
+sudo apt --fix-broken install   # Löser eventuella beroendeproblem
+```
+
+#### Linux (Raspberry Pi / ARM / övriga)
+
+Bygg satdump från källkod:
+
 ```bash
 sudo apt update
-sudo apt install librtlsdr-dev rtl-433 python3-venv python3-pip
+sudo apt install librtlsdr-dev rtl-433 python3-venv python3-pip \
+  cmake git build-essential libfftw3-dev libvolk-dev libpng-dev \
+  libjpeg-dev libtiff-dev libusb-1.0-0-dev portaudio19-dev libnng-dev
+
+git clone https://github.com/SatDump/SatDump.git
+cd SatDump && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF -DCMAKE_INSTALL_PREFIX=/usr ..
+make -j$(nproc)    # Använd make -j1 på Raspberry Pi 3 eller äldre
+sudo make install
 ```
 
 > **Linux-tips:** Om dongeln inte känns igen, lägg till en udev-regel:
