@@ -9,12 +9,13 @@ import subprocess
 
 MENU = """
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.1           ║
+║         SDR Mottagare v1.2           ║
 ╠══════════════════════════════════════╣
-║  1. Vädersensorer   (433 MHz)        ║
+║  1. Vädersensorer    (433 MHz)       ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
-║  3. Fartyg AIS      (162 MHz)        ║
-║  4. Avsluta                          ║
+║  3. Fartyg AIS       (162 MHz)       ║
+║  4. ACARS flygdata   (129-132 MHz)   ║
+║  5. Avsluta                          ║
 ╚══════════════════════════════════════╝
 """
 
@@ -71,6 +72,9 @@ def main():
             from modes.ais import run_ais
             run_ais()
         elif val == "4":
+            from modes.acars import run_acars
+            run_acars()
+        elif val == "5":
             print("Hejdå!")
             sys.exit(0)
         else:
