@@ -32,6 +32,7 @@ def menu_text() -> str:
 ║  6. Spektrum & Signal (skanner)      ║
 ║  7. Röst flyg/marin  (AM/FM)         ║
 ║  8. 🚂 Järnväg       (153-156 MHz)   ║
+║  9. 📡 IoT-sniffning (868 MHz)       ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -181,9 +182,12 @@ def main():
             elif val == "8":
                 from modes.railway import run_railway
                 run_railway(settings=SETTINGS)
+            elif val == "9":
+                from modes.iot import run_iot
+                run_iot(settings=SETTINGS)
             elif val in ("s", "i"):
                 show_settings()
-            elif val in ("a", "9", "q"):
+            elif val in ("a", "0", "q"):
                 print("Hejdå!")
                 sys.exit(0)
             else:
