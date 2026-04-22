@@ -31,6 +31,7 @@ def menu_text() -> str:
 ║  5. POCSAG/FLEX      (148-932 MHz)   ║
 ║  6. Spektrum & Signal (skanner)      ║
 ║  7. Röst flyg/marin  (AM/FM)         ║
+║  8. 🚂 Järnväg       (153-156 MHz)   ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -176,9 +177,12 @@ def main():
         elif val == "7":
             from modes.voice import run_voice
             run_voice(settings=SETTINGS)
+        elif val == "8":
+            from modes.railway import run_railway
+            run_railway(settings=SETTINGS)
         elif val in ("s", "i"):
             show_settings()
-        elif val in ("a", "8"):
+        elif val in ("a", "9", "q"):
             print("Hejdå!")
             sys.exit(0)
         else:
