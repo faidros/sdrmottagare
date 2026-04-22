@@ -14,6 +14,8 @@ Kör i terminalen och presenterar all information som text.
 | 5 | **POCSAG/FLEX** | 148–932 MHz | Personsökare: räddningstjänst, sjukhus |
 | 6 | **Spektrum & Skanner** | Valfritt | Realtids-FFT, frekvensskanner, signalstyrkemätare |
 | 7 | **Röst flyg/marin** | 118–400 MHz / 156–174 MHz | Lyssna på flygkontroll (AM) och båttrafik (FM) |
+| 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – Trafikverket, SJ, lokförare (FM) |
+| 9 | **📡 IoT-sniffning** | 868 MHz | LoRa, Z-Wave, smarta mätare, larm, dörrklockor (3 lägen) |
 
 ---
 
@@ -123,6 +125,17 @@ Eller utan att aktivera venv:
 - Normalt varningsmeddelande från tunern, inget fel
 - Kan uppstå vid frekvenser nära gränserna för dongeln (~24 MHz–1,75 GHz)
 
+### Inga järnvägssignaler hörs
+- Tågradio är VHF FM med relativt låg effekt – du behöver vara nära en järnvägslinje
+- Prova nödkanalen **154.000 MHz** först (mest aktiv)
+- En vertikal antenn för ~150 MHz (~50 cm) ger bäst resultat
+
+### Inga IoT-signaler på 868 MHz
+- LoRaWAN-paket kan komma sällan (var 10:e sekund till var 15:e minut beroende på enhet)
+- Använd **Burst-detektor**-läget – det visar alla signaler oavsett protokoll
+- Z-Wave och smarta mätare är aktiva i bostadsområden, inte utomhus/landsbygd
+- En kortare antenn (~8,6 cm för kvartsvåg vid 868 MHz) fungerar bättre än en 433 MHz-antenn
+
 ---
 
 ## Projektstruktur
@@ -139,7 +152,9 @@ sdrmottagare/
     ├── acars.py           # Flygdata ACARS 129–132 MHz  (ren Python)
     ├── paging.py          # POCSAG & FLEX personsökare  (ren Python)
     ├── scanner.py         # Spektrumanalysator & frekvensskanner
-    └── voice.py           # Röstmottagning flyg AM / marin FM
+    ├── voice.py           # Röstmottagning flyg AM / marin FM
+    ├── railway.py         # Analogt tågradio 153–156 MHz  (ren Python FM)
+    └── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
 ```
 
 ---
@@ -154,6 +169,10 @@ sdrmottagare/
 | ACARS | 129.125 MHz | Tätast trafik nära en flygplats |
 | POCSAG | 169.6375 MHz | RAKEL – svenska blåljus |
 | Vädersensor | 433.920 MHz | Kräver att du har en kompatibel sensor |
+| Järnväg nöd | **154.000 MHz** | Alltid aktiv längs svenska järnvägar |
+| LoRaWAN | **868.100 / 868.300 / 868.500 MHz** | Primära EU-kanaler, trafik dygnet runt i städer |
+| Z-Wave | **868.420 MHz** | Aktiv i områden med hemautomation |
+| Smarta mätare | **868.950 MHz** | Wireless M-Bus, aktiv i bostadsområden |
 
 ---
 
