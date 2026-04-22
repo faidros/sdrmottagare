@@ -161,6 +161,30 @@ Eller utan att aktivera venv:
 - Z-Wave och smarta mätare är aktiva i bostadsområden, inte utomhus/landsbygd
 - En kortare antenn (~8,6 cm för kvartsvåg vid 868 MHz) fungerar bättre än en 433 MHz-antenn
 
+### 🛰️ Meteor-M2-3 – satellitbilder i detalj
+
+Meteor-M2-3 är en rysk vädersatellit i polär bana (~820 km höjd) som sänder bilder i realtid på **137.9 MHz** med LRPT-protokollet (digital QPSK). Programmet hämtar aktuell TLE-data från Celestrak, beräknar de kommande passagerna över din position och startar automatiskt SatDump vid rätt tidpunkt.
+
+#### Passagekvalitet
+
+Varje passage visas med ett kvalitetsmärke baserat på hur högt satelliten når över horisonten (maxelevation):
+
+| Märke | Text | Maxelevation | Innebörd |
+|-------|------|-------------|----------|
+| 🔴 | **Låg** | < 20° | Knappt synlig – signalen passerar genom mycket atmosfär och blockas lätt av träd och hus. Bilden blir ofta brusig eller tom. |
+| 🟡 | **OK** | 20–40° | Hyfsad passage – fungerar med fri sikt och bra antenn. |
+| 🟢 | **Bra** | > 40° | Hög passage – kort signalväg, bäst förutsättningar för en komplett och tydlig bild. |
+
+Sikta i första hand på ett **🟢 Bra**-pass. Meteor-M2-3 passerar Sverige 4–6 gånger per dygn och ett Bra-pass inträffar vanligen en eller ett par gånger om dagen.
+
+#### Antenn
+
+En **dipol för 137 MHz** (~54 cm per arm, vinklad till V-form, ~120° öppning) ger bäst mottagning. En turniket-antenn (fyra dipoler i cirkulär polarisation) är ännu bättre men svårare att bygga. Den lilla "piska"-antennen som medföljer dongeln fungerar dåligt för satellitmottagning.
+
+#### Var hittar jag bilderna?
+
+Bilderna sparas i `~/sdr_bilder/meteor/<tidsstämpel>/` som PNG-filer. Öppna dem direkt i Finder/bildvisaren. En fullständig passage med >40° elevation ger normalt en bildremsa på ~2 000 × 800 pixlar (~1 km/pixel).
+
 ### Meteor-M2-3: svart bild / inga bilder
 - Antennen är det viktigaste – en 137 MHz dipol (~54 cm per arm) eller turniket-antenn krävs
 - Välj ett pass med hög maxelevation (>30°) för bäst chans
