@@ -108,8 +108,11 @@ def show_settings():
 
 def apply_settings(sdr) -> None:
     """Applicera globala inställningar på ett öppet RtlSdr-objekt."""
-    sdr.gain    = SETTINGS["gain"]
+    sdr.gain            = SETTINGS["gain"]
     sdr.freq_correction = SETTINGS["ppm"]
+
+
+def check_dependencies() -> None:
     """Kontrollera att nödvändiga verktyg finns installerade."""
     missing = []
 
