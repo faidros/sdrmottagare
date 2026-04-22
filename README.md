@@ -108,6 +108,7 @@ sudo make install
    conda install -c conda-forge librtlsdr
    ```
 4. Installera `rtl_433` via [GitHub releases](https://github.com/merbanan/rtl_433/releases)
+5. Installera `satdump` via [SatDump releases](https://github.com/SatDump/SatDump/releases) – ladda ner och kör `.exe`-installationsfilen
 
 ---
 
