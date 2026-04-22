@@ -6,6 +6,7 @@ rtl_433 stöder hundratals sensorprotokoll (Oregon Scientific, Bresser, Nexus m.
 
 import subprocess
 import json
+import threading
 import sys
 from datetime import datetime
 
@@ -63,13 +64,12 @@ def run_weather():
     print(" Tryck Ctrl+C för att avsluta")
     print("="*50 + "\n")
 
-    # rtl_433 körs med JSON-utmatning för enkel parsning
     cmd = [
         "rtl_433",
-        "-f", "433.92M",   # Frekvens
-        "-s", "250k",      # Samplingsfrekvens (räcker för 433)
-        "-F", "json",      # JSON-utmatning
-        "-M", "time:iso",  # ISO-tidsstämplar
+        "-f", "433.92M",
+        "-s", "250k",
+        "-F", "json",
+        "-M", "time:iso",
     ]
 
     print(f"Kommando: {' '.join(cmd)}\n")
@@ -82,22 +82,42 @@ def run_weather():
             text=True,
             bufsize=1,
         )
+    except FileNotFoundError:
+        print("❌ rtl_433 hittades inte. Installera med: brew install rtl_433")
+        return
 
+    # Samla stderr i bakgrunden så den inte blockerar
+    stderr_lines = []
+    def _read_stderr():
+        for line in proc.stderr:
+            stderr_lines.append(line.rstrip())
+    threading.Thread(target=_read_stderr, daemon=True).start()
+
+    received = 0
+    try:
         for rad in proc.stdout:
             rad = rad.strip()
             if not rad:
                 continue
             try:
                 data = json.loads(rad)
+                received += 1
                 print(format_sensor(data))
             except json.JSONDecodeError:
-                # rtl_433 kan skriva icke-JSON-rader (t.ex. status)
                 if rad and not rad.startswith("{"):
                     print(f"   ℹ️  {rad}")
 
     except KeyboardInterrupt:
         print("\n\nAvbruten av användaren.")
         proc.terminate()
-    except FileNotFoundError:
-        print("❌ rtl_433 hittades inte. Installera med: brew install rtl_433")
-        sys.exit(1)
+        return
+
+    # Om vi kommer hit utan Ctrl+C avslutades rtl_433 av sig självt
+    proc.wait()
+    if received == 0:
+        print("❌ rtl_433 avslutades utan att ta emot några paket.")
+        if stderr_lines:
+            print("   Felmeddelande från rtl_433:")
+            for line in stderr_lines[-10:]:
+                print(f"   {line}")
+        print("\n   Tips: Kontrollera att dongeln är inkopplad och inte används av annat program.")

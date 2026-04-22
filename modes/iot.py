@@ -156,15 +156,25 @@ def run_decoder(settings: dict):
 
     try:
         proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, bufsize=1,
         )
+    except FileNotFoundError:
+        print("❌ rtl_433 hittades inte.")
+        return
+
+    stderr_lines = []
+    threading.Thread(target=lambda: [stderr_lines.append(l.rstrip()) for l in proc.stderr], daemon=True).start()
+
+    received = 0
+    try:
         for line in proc.stdout:
             line = line.strip()
             if not line:
                 continue
             try:
                 data = json.loads(line)
+                received += 1
                 model = data.get("model", "?")
                 seen_models[model] = seen_models.get(model, 0) + 1
                 print(format_iot_packet(data))
@@ -176,8 +186,17 @@ def run_decoder(settings: dict):
     except KeyboardInterrupt:
         print("\n\nAvbruten.")
         proc.terminate()
-    except FileNotFoundError:
-        print("❌ rtl_433 hittades inte. Installera med: brew install rtl_433")
+        return
+
+    # rtl_433 avslutades av sig självt
+    proc.wait()
+    if received == 0:
+        print("❌ rtl_433 avslutades utan att ta emot några paket.")
+        if stderr_lines:
+            print("   Felmeddelande från rtl_433:")
+            for line in stderr_lines[-10:]:
+                print(f"   {line}")
+        print("\n   Tips: Kontrollera att dongeln är inkopplad och inte används av annat program.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -381,8 +400,8 @@ def run_iot(settings: dict | None = None):
 
     if val == "1":
         try:
-            subprocess.run(["rtl_433", "-V"], capture_output=True, check=True)
-        except (FileNotFoundError, subprocess.CalledProcessError):
+            subprocess.run(["rtl_433", "-V"], capture_output=True)
+        except FileNotFoundError:
             print("❌ rtl_433 saknas. Installera med: brew install rtl_433")
             return
         run_decoder(settings)
