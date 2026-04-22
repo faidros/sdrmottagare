@@ -45,9 +45,10 @@ Programmet använder två typer av beroenden:
 |-----|---------|-----------|
 | Systembibliotek | `librtlsdr` | Alla lägen (kommunikation med dongeln) |
 | Externt program | `rtl_433` | Vädersensorer (läge 1) + IoT-avkodare (läge 9) |
-| Python-paket | `pyrtlsdr` | Alla lägen med direkt IQ-läsning (2–9) |
-| Python-paket | `pyModeS` | ADS-B flygplan (läge 2, 1090 MHz) |
-| Python-paket | `pyais` | Fartyg AIS (läge 3, 162 MHz) |
+| Externt program | `readsb` | ADS-B flygplan (läge 2, 1090 MHz) |
+| Externt program | `AIS-catcher` | Fartyg AIS (läge 3, 162 MHz) |
+| Python-paket | `pyrtlsdr` | Alla lägen med direkt IQ-läsning |
+| Python-paket | `pyais` | NMEA-avkodning för AIS (läge 3) |
 | Python-paket | `numpy` | All signalbehandling |
 | Python-paket | `sounddevice` | Röstmottagning och järnväg (ljud) |
 | Python-paket | `ephem` | Passprediktion för Meteor-M2-3 (läge 10) |
@@ -55,7 +56,13 @@ Programmet använder två typer av beroenden:
 
 #### macOS
 ```bash
-brew install librtlsdr rtl_433 satdump
+brew install librtlsdr rtl_433 satdump readsb
+
+# AIS-catcher finns inte i brew – bygg från källkod (cmake krävs):
+git clone https://github.com/jvde-github/AIS-catcher
+cd AIS-catcher && mkdir build && cd build
+cmake .. && make -j$(sysctl -n hw.ncpu)
+sudo cp AIS-catcher /usr/local/bin/
 ```
 
 #### Linux (Debian/Ubuntu x64)
@@ -171,7 +178,7 @@ Eller utan att aktivera venv:
 
 ### Inga flygplan / fartyg syns
 - Placera antennen nära ett fönster eller utomhus
-- Prova att öka förstärkning: ändra `GAIN` i respektive `.py`-fil
+- Prova att öka förstärkning: välj ett högre dB-värde i inställningsmenyn (eller "auto")
 - ADS-B kräver fri sikt mot himlen för bäst mottagning
 - Använd **Spektrum & Skanner → Signalstyrkemätare** för att optimera antennplacering
 
