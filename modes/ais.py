@@ -344,18 +344,28 @@ def run_ais(settings: dict | None = None):
     display_thread = threading.Thread(target=print_table, args=(stop_event,), daemon=True)
     display_thread.start()
 
+    def rx_loop():
+        try:
+            while not stop_event.is_set():
+                iq = sdr.read_samples(CHUNK)
+                for ch_id, ch_freq in CHANNELS.items():
+                    for msg in process_channel(iq, center_freq, ch_freq, ch_id):
+                        decode_and_store(msg)
+        except Exception as e:
+            if not stop_event.is_set():
+                print(f"\n❌ Fel under mottagning: {e}")
+        finally:
+            stop_event.set()
+
+    rx_thread = threading.Thread(target=rx_loop, daemon=True)
+    rx_thread.start()
+
     try:
-        while True:
-            iq = sdr.read_samples(CHUNK)
-
-            for ch_id, ch_freq in CHANNELS.items():
-                for msg in process_channel(iq, center_freq, ch_freq, ch_id):
-                    decode_and_store(msg)
-
+        while not stop_event.is_set():
+            time.sleep(0.1)
     except KeyboardInterrupt:
         print("\n\nAvbruten av användaren.")
-    except Exception as e:
-        print(f"\n❌ Fel under mottagning: {e}")
     finally:
         stop_event.set()
+        time.sleep(0.2)
         sdr.close()
