@@ -13,6 +13,7 @@ import sys
 import time
 import queue
 import threading
+from collections import deque
 from datetime import datetime
 
 import numpy as np
@@ -128,32 +129,6 @@ def rssi_bar(db: float, db_min: float = -60, db_max: float = -10,
 
 # ── Mottagningsloop ───────────────────────────────────────────────────────────
 
-def receive_loop(sdr: RtlSdr, audio_q: queue.Queue,
-                 mode: str, squelch_db: float,
-                 status: dict, stop_event: threading.Event):
-    """
-    SDR-läsning och demodulering i bakgrundstråd.
-    Lägger avkodade ljudblockar i audio_q.
-    """
-    demod_fn = demod_am if mode == "AM" else demod_fm
-
-    while not stop_event.is_set():
-        try:
-            iq    = sdr.read_samples(CHUNK)
-            raw   = demod_fn(np.asarray(iq, dtype=np.complex64))
-            audio = decimate(raw)
-            audio = agc(audio)
-            audio, db = squelch(audio, squelch_db)
-
-            status["db"]     = db
-            status["squelch_open"] = db >= squelch_db
-
-            # Lägg i kö, kasta gamla block om kön är full
-            if audio_q.qsize() < 8:
-                audio_q.put(audio.astype(np.float32))
-        except Exception:
-            pass
-
 
 def display_loop(freq: int, mode: str, name: str,
                  squelch_db: float, status: dict,
@@ -203,17 +178,33 @@ def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float,
     print(f"  Squelch     : {squelch_db:.0f} dB  |  Förstärkning: {gain_str}  |  PPM: {ppm:+d}")
     print(f"\n  Lyssnar... (Ctrl+C för att avsluta)\n")
 
-    audio_q    = queue.Queue(maxsize=12)
+    # Trådsäker ringbuffer – deque är atomärt i CPython (säkert i PortAudio-callback)
+    audio_buf  = deque(maxlen=6)
     stop_event = threading.Event()
     status     = {"db": -60, "squelch_open": False}
+    SILENCE    = np.zeros(AUDIO_CHUNK, dtype=np.float32)
+    demod_fn   = demod_am if mode == "AM" else demod_fm
 
-    # SDR-tråd
-    rx_thread = threading.Thread(
-        target=receive_loop,
-        args=(sdr, audio_q, mode, squelch_db, status, stop_event),
+    # ── SDR-callback – körs av librtlsdrs egna tråd (read_samples_async) ──────
+    def sdr_callback(samples, _ctx):
+        if stop_event.is_set():
+            return
+        iq    = np.asarray(samples, dtype=np.complex64)
+        raw   = demod_fn(iq)
+        audio = decimate(raw)
+        audio = agc(audio)
+        audio, db = squelch(audio, squelch_db)
+        status["db"]           = db
+        status["squelch_open"] = db >= squelch_db
+        audio_buf.append(audio.astype(np.float32))
+
+    # Starta async-läsning i sin egen tråd (librtlsdr-hanterad)
+    async_thread = threading.Thread(
+        target=sdr.read_samples_async,
+        args=(sdr_callback, CHUNK),
         daemon=True,
     )
-    rx_thread.start()
+    async_thread.start()
 
     # Display-tråd
     disp_thread = threading.Thread(
@@ -223,30 +214,21 @@ def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float,
     )
     disp_thread.start()
 
-    # Ljuduppspelning i huvudtråden via sounddevice-callback
-    # Använd callback-modellen – undviker segfault från blocksize-mismatch
-    SILENCE = np.zeros(AUDIO_CHUNK, dtype=np.float32)
-
-    def audio_callback(outdata: np.ndarray, frames: int, time_info, status):
+    # ── PortAudio-callback – deque.popleft() är atomärt, GIL-säkert ───────────
+    def audio_callback(outdata: np.ndarray, frames: int, time_info, cb_status):
         try:
-            chunk = audio_q.get_nowait()
-        except queue.Empty:
+            chunk = audio_buf.popleft()
+        except IndexError:
             chunk = SILENCE
-
-        # Säkerställ exakt rätt antal frames och klipp till [-1, 1]
-        chunk = np.asarray(chunk, dtype=np.float32).flatten()
-        if len(chunk) < frames:
-            chunk = np.pad(chunk, (0, frames - len(chunk)))
-        else:
-            chunk = chunk[:frames]
+        chunk = chunk[:frames] if len(chunk) >= frames else np.pad(chunk, (0, frames - len(chunk)))
         outdata[:, 0] = np.clip(chunk, -1.0, 1.0)
 
     try:
         with sd.OutputStream(samplerate=AUDIO_RATE, channels=1,
                              dtype="float32", blocksize=AUDIO_CHUNK,
                              callback=audio_callback):
-            while True:
-                time.sleep(0.1)   # Callback sköter uppspelningen
+            while not stop_event.is_set():
+                time.sleep(0.1)
 
     except KeyboardInterrupt:
         print(f"\n\n  Avslutat @ {datetime.now().strftime('%H:%M:%S')}\n")
@@ -254,6 +236,11 @@ def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float,
         print(f"\n❌ Ljudfel: {e}")
     finally:
         stop_event.set()
+        try:
+            sdr.cancel_read_async()
+        except Exception:
+            pass
+        time.sleep(0.2)
         sdr.close()
 
 
