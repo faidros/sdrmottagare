@@ -267,6 +267,3 @@ sdrmottagare/
 ## Licens
 
 MIT – gör vad du vill med koden. Pull requests välkomna!
-- För 433 MHz räcker ofta en kort trådantenn (~17 cm för kvartsvåg)
-- För ADS-B (1090 MHz) ger en dedikerad 1090 MHz-antenn bäst resultat
-- Justera `gain` i `adsb.py` om du får dålig mottagning (prova 20–40 dB)
