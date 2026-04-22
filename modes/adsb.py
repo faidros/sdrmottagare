@@ -206,10 +206,11 @@ def run_adsb(settings: dict | None = None):
         print("   Kontrollera att dongeln är inkopplad.")
         return
 
-    sdr.sample_rate     = SAMPLE_RATE
-    sdr.center_freq     = CENTER_FREQ
-    sdr.gain            = gain
-    sdr.freq_correction = ppm
+    sdr.sample_rate = SAMPLE_RATE
+    sdr.center_freq = CENTER_FREQ
+    sdr.gain        = gain
+    if ppm != 0:
+        sdr.freq_correction = ppm
 
     gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"  Samplingsfrekvens : {SAMPLE_RATE/1e6:.1f} MHz")

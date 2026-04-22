@@ -479,10 +479,11 @@ def run_paging(settings: dict | None = None):
         print(f"\n❌ Kunde inte öppna SDR-dongle: {e}")
         return
 
-    sdr.sample_rate     = SAMPLE_RATE
-    sdr.center_freq     = freq
-    sdr.gain            = gain
-    sdr.freq_correction = ppm
+    sdr.sample_rate = SAMPLE_RATE
+    sdr.center_freq = freq
+    sdr.gain        = gain
+    if ppm != 0:
+        sdr.freq_correction = ppm
 
     gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"\n  Protokoll  : {protocol}")

@@ -401,8 +401,9 @@ def run_scanner_mode(settings: dict | None = None):
         return
 
     try:
-        sdr.gain            = gain
-        sdr.freq_correction = ppm
+        sdr.gain = gain
+        if ppm != 0:
+            sdr.freq_correction = ppm
 
         if mode == "1":
             sdr.sample_rate = SAMPLE_RATE
