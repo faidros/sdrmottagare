@@ -51,7 +51,7 @@ def find_aiscatcher() -> str | None:
 
 
 def build_command(binary: str, gain, ppm: int) -> list:
-    cmd = [binary, "-r", "rtlsdr"]
+    cmd = [binary, "-d:0"]          # välj RTL-SDR via enhetsindex 0
     if gain == "auto":
         cmd += ["-gr", "TUNER", "auto"]
     else:
