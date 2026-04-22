@@ -2,3 +2,4 @@ pyrtlsdr>=0.3.0
 pyModeS>=2.10
 pyais>=3.0.0
 numpy>=1.24.0
+sounddevice>=0.4.0
