@@ -113,8 +113,11 @@ def fetch_tle(name: str = METEOR_NAME) -> tuple[str, str, str] | None:
 # ── Passprediktion ────────────────────────────────────────────────────────────
 
 def ephem_date_to_dt(d) -> datetime:
-    """Konvertera ephem.Date till Python datetime (UTC)."""
-    return datetime.strptime(str(d), "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    """Konvertera ephem.Date till Python datetime (UTC).
+    ephem.Date.tuple() returnerar (år, månad, dag, h, m, s) – säkrare än str()."""
+    t = d.tuple()
+    return datetime(t[0], t[1], t[2], t[3], t[4], int(t[5]),
+                    tzinfo=timezone.utc)
 
 
 def find_passes(lat: float, lon: float, elev: int,
@@ -134,7 +137,7 @@ def find_passes(lat: float, lon: float, elev: int,
 
     while len(passes) < count:
         try:
-            aos, _, _, los, _, max_elev = obs.next_pass(sat)
+            aos, _, _, max_elev, los, _ = obs.next_pass(sat)
         except Exception:
             break
 
