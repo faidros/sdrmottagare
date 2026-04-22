@@ -463,7 +463,10 @@ def choose_freq_and_protocol() -> tuple[str, int]:
     return protocol, freq
 
 
-def run_paging():
+def run_paging(settings: dict | None = None):
+    gain = (settings or {}).get("gain", GAIN)
+    ppm  = (settings or {}).get("ppm",  0)
+
     print("\n" + "=" * 50)
     print(" POCSAG & FLEX – Personsökaravkodare")
     print("=" * 50)
@@ -476,14 +479,16 @@ def run_paging():
         print(f"\n❌ Kunde inte öppna SDR-dongle: {e}")
         return
 
-    sdr.sample_rate = SAMPLE_RATE
-    sdr.center_freq = freq
-    sdr.gain        = GAIN
+    sdr.sample_rate     = SAMPLE_RATE
+    sdr.center_freq     = freq
+    sdr.gain            = gain
+    sdr.freq_correction = ppm
 
+    gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"\n  Protokoll  : {protocol}")
     print(f"  Frekvens   : {freq/1e6:.4f} MHz")
     print(f"  Sampling   : {SAMPLE_RATE/1e3:.0f} kHz")
-    print(f"  Förstärkning: {GAIN} dB\n")
+    print(f"  Förstärkning: {gain_str}  |  PPM: {ppm:+d}\n")
     if protocol == "POCSAG":
         print(f"  Testar baudrater: {', '.join(map(str, POCSAG_BAUD))} baud")
     else:

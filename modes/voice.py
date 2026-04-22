@@ -181,7 +181,8 @@ def display_loop(freq: int, mode: str, name: str,
         time.sleep(0.15)
 
 
-def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float):
+def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float,
+                  gain="auto", ppm: int = 0):
     """Öppna SDR och starta mottagning med ljuduppspelning."""
     try:
         sdr = RtlSdr()
@@ -189,14 +190,16 @@ def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float):
         print(f"\n❌ Kunde inte öppna SDR-dongle: {e}")
         return
 
-    sdr.sample_rate = SAMPLE_RATE
-    sdr.center_freq = freq
-    sdr.gain        = GAIN
+    sdr.sample_rate     = SAMPLE_RATE
+    sdr.center_freq     = freq
+    sdr.gain            = gain
+    sdr.freq_correction = ppm
 
+    gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"\n  Frekvens    : {freq/1e6:.4f} MHz  ({mode})")
     print(f"  Kanal       : {name}")
     print(f"  Sampling    : {SAMPLE_RATE/1e3:.0f} kHz → {AUDIO_RATE/1e3:.0f} kHz ljud")
-    print(f"  Squelch     : {squelch_db:.0f} dB")
+    print(f"  Squelch     : {squelch_db:.0f} dB  |  Förstärkning: {gain_str}  |  PPM: {ppm:+d}")
     print(f"\n  Lyssnar... (Ctrl+C för att avsluta)\n")
 
     audio_q    = queue.Queue(maxsize=12)
@@ -286,7 +289,11 @@ def ask_squelch(default: float) -> float:
         return default
 
 
-def run_voice():
+def run_voice(settings: dict | None = None):
+    gain       = (settings or {}).get("gain",       "auto")
+    ppm        = (settings or {}).get("ppm",        0)
+    sq_default = (settings or {}).get("squelch_db", -40)
+
     print("\n" + "=" * 50)
     print(" Röstmottagning")
     print("=" * 50)
@@ -300,10 +307,10 @@ def run_voice():
     if typ == "2":
         freq, name   = choose_channel("marin", MARINE_CHANNELS)
         mode         = "FM"
-        squelch_db   = ask_squelch(-42)
+        squelch_db   = ask_squelch(sq_default)
     else:
         freq, name   = choose_channel("flyg", AVIATION_FREQS)
         mode         = "AM"
-        squelch_db   = ask_squelch(-40)
+        squelch_db   = ask_squelch(sq_default)
 
-    run_voice_rx(freq, mode, name, squelch_db)
+    run_voice_rx(freq, mode, name, squelch_db, gain=gain, ppm=ppm)

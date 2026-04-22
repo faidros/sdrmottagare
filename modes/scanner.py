@@ -354,7 +354,10 @@ BAND_PRESETS = {
 }
 
 
-def run_scanner_mode():
+def run_scanner_mode(settings: dict | None = None):
+    gain = (settings or {}).get("gain", GAIN)
+    ppm  = (settings or {}).get("ppm",  0)
+
     print("\n" + "=" * 50)
     print(" Spektrum & Signalstyrka")
     print("=" * 50)
@@ -398,7 +401,8 @@ def run_scanner_mode():
         return
 
     try:
-        sdr.gain = GAIN
+        sdr.gain            = gain
+        sdr.freq_correction = ppm
 
         if mode == "1":
             sdr.sample_rate = SAMPLE_RATE

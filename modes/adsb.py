@@ -189,8 +189,11 @@ def print_table(stop_event):
         time.sleep(3)
 
 
-def run_adsb():
+def run_adsb(settings: dict | None = None):
     """Starta ADS-B-mottagning med pyrtlsdr."""
+    gain = (settings or {}).get("gain", GAIN)
+    ppm  = (settings or {}).get("ppm",  0)
+
     print("\n" + "="*50)
     print(" Lyssnar på flygtrafik (ADS-B 1090 MHz)")
     print(" Tryck Ctrl+C för att avsluta")
@@ -203,13 +206,15 @@ def run_adsb():
         print("   Kontrollera att dongeln är inkopplad.")
         return
 
-    sdr.sample_rate = SAMPLE_RATE
-    sdr.center_freq = CENTER_FREQ
-    sdr.gain        = GAIN
+    sdr.sample_rate     = SAMPLE_RATE
+    sdr.center_freq     = CENTER_FREQ
+    sdr.gain            = gain
+    sdr.freq_correction = ppm
 
+    gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"  Samplingsfrekvens : {SAMPLE_RATE/1e6:.1f} MHz")
     print(f"  Centerfrekvens    : {CENTER_FREQ/1e6:.0f} MHz")
-    print(f"  Förstärkning      : {GAIN} dB\n")
+    print(f"  Förstärkning      : {gain_str}  |  PPM: {ppm:+d}\n")
     print("  Startar mottagning...\n")
 
     stop_event = threading.Event()

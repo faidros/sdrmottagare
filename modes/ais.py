@@ -308,8 +308,11 @@ def print_table(stop_event: threading.Event):
 
 # ── Huvudloop ─────────────────────────────────────────────────────────────────
 
-def run_ais():
+def run_ais(settings: dict | None = None):
     """Starta AIS-mottagning."""
+    gain = (settings or {}).get("gain", GAIN)
+    ppm  = (settings or {}).get("ppm",  0)
+
     print("\n" + "=" * 50)
     print(" Lyssnar på fartyg (AIS 161.975 / 162.025 MHz)")
     print(" Tryck Ctrl+C för att avsluta")
@@ -324,13 +327,15 @@ def run_ais():
         print("   Kontrollera att dongeln är inkopplad.")
         return
 
-    sdr.sample_rate = SAMPLE_RATE
-    sdr.center_freq = center_freq
-    sdr.gain        = GAIN
+    sdr.sample_rate     = SAMPLE_RATE
+    sdr.center_freq     = center_freq
+    sdr.gain            = gain
+    sdr.freq_correction = ppm
 
+    gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"  Samplingsfrekvens : {SAMPLE_RATE/1e3:.0f} kHz")
     print(f"  Centerfrekvens    : {center_freq/1e6:.3f} MHz")
-    print(f"  Förstärkning      : {GAIN} dB")
+    print(f"  Förstärkning      : {gain_str}  |  PPM: {ppm:+d}")
     print(f"  Kanaler           : A ({CHANNELS['A']/1e6:.3f} MHz)  B ({CHANNELS['B']/1e6:.3f} MHz)\n")
     print("  Startar mottagning...\n")
 

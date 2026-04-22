@@ -299,7 +299,10 @@ def choose_frequency() -> int:
 
 # ── Huvudloop ─────────────────────────────────────────────────────────────────
 
-def run_acars():
+def run_acars(settings: dict | None = None):
+    gain = (settings or {}).get("gain", GAIN)
+    ppm  = (settings or {}).get("ppm",  0)
+
     print("\n" + "=" * 50)
     print(" ACARS – Flygplansdatakommunikation")
     print(" VHF AM, 2400 baud")
@@ -314,13 +317,15 @@ def run_acars():
         print("   Kontrollera att dongeln är inkopplad.")
         return
 
-    sdr.sample_rate = SAMPLE_RATE
-    sdr.center_freq = center_freq
-    sdr.gain        = GAIN
+    sdr.sample_rate     = SAMPLE_RATE
+    sdr.center_freq     = center_freq
+    sdr.gain            = gain
+    sdr.freq_correction = ppm
 
+    gain_str = f"{gain} dB" if gain != "auto" else "auto"
     print(f"\n  Samplingsfrekvens : {SAMPLE_RATE/1e3:.0f} kHz")
     print(f"  Frekvens          : {center_freq/1e6:.3f} MHz")
-    print(f"  Förstärkning      : {GAIN} dB")
+    print(f"  Förstärkning      : {gain_str}  |  PPM: {ppm:+d}")
     print(f"  Mark/Space        : {MARK_FREQ}/{SPACE_FREQ} Hz @ {BAUD_RATE} baud\n")
     print("  Startar mottagning...\n")
 
