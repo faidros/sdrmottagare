@@ -76,15 +76,18 @@ def demod_fm(iq: np.ndarray) -> np.ndarray:
     """FM-demodulering: fasens derivata (diskriminator)."""
     diff  = iq[1:] * np.conj(iq[:-1])
     demod = np.angle(diff).astype(np.float32)
+    demod = np.append(demod, 0.0)   # Pad till samma längd som indata (CHUNK)
     # Skala till ±1 (anpassa för marin 5 kHz deviation vid 240 kHz fs)
     demod *= AUDIO_RATE / (2 * np.pi * 5_000)
     return demod
 
 
 def decimate(sig: np.ndarray) -> np.ndarray:
-    """LP-filtrera och decimera med faktor DECIMATE."""
+    """LP-filtrera och decimera med faktor DECIMATE – alltid exakt CHUNK//DECIMATE samples."""
     filtered = np.convolve(sig, LP_FILT, mode="same")
-    return filtered[::DECIMATE]
+    # Trimma till exakt jämnt antal så vi alltid får samma längd ut
+    n = (len(filtered) // DECIMATE) * DECIMATE
+    return filtered[:n:DECIMATE]
 
 
 def agc(audio: np.ndarray, target: float = 0.5) -> np.ndarray:
@@ -216,16 +219,30 @@ def run_voice_rx(freq: int, mode: str, name: str, squelch_db: float):
     )
     disp_thread.start()
 
-    # Ljuduppspelning i huvudtråden
+    # Ljuduppspelning i huvudtråden via sounddevice-callback
+    # Använd callback-modellen – undviker segfault från blocksize-mismatch
+    SILENCE = np.zeros(AUDIO_CHUNK, dtype=np.float32)
+
+    def audio_callback(outdata: np.ndarray, frames: int, time_info, status):
+        try:
+            chunk = audio_q.get_nowait()
+        except queue.Empty:
+            chunk = SILENCE
+
+        # Säkerställ exakt rätt antal frames och klipp till [-1, 1]
+        chunk = np.asarray(chunk, dtype=np.float32).flatten()
+        if len(chunk) < frames:
+            chunk = np.pad(chunk, (0, frames - len(chunk)))
+        else:
+            chunk = chunk[:frames]
+        outdata[:, 0] = np.clip(chunk, -1.0, 1.0)
+
     try:
         with sd.OutputStream(samplerate=AUDIO_RATE, channels=1,
-                             dtype="float32", blocksize=AUDIO_CHUNK) as stream:
+                             dtype="float32", blocksize=AUDIO_CHUNK,
+                             callback=audio_callback):
             while True:
-                try:
-                    audio = audio_q.get(timeout=1.0)
-                    stream.write(audio.reshape(-1, 1))
-                except queue.Empty:
-                    pass
+                time.sleep(0.1)   # Callback sköter uppspelningen
 
     except KeyboardInterrupt:
         print(f"\n\n  Avslutat @ {datetime.now().strftime('%H:%M:%S')}\n")
