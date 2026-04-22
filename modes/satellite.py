@@ -16,6 +16,7 @@ Krav:
 
 import json
 import os
+import ssl
 import subprocess
 import sys
 import time
@@ -88,7 +89,10 @@ def fetch_tle(name: str = METEOR_NAME) -> tuple[str, str, str] | None:
     """Hämta aktuell TLE för satelliten från Celestrak."""
     print(f"\n  Hämtar TLE-data från Celestrak...", end="", flush=True)
     try:
-        with urllib.request.urlopen(TLE_URL, timeout=10) as resp:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        with urllib.request.urlopen(TLE_URL, timeout=10, context=ctx) as resp:
             lines = resp.read().decode().splitlines()
     except Exception as e:
         print(f"\n  ❌ Kunde inte hämta TLE: {e}")
