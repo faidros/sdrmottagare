@@ -179,7 +179,7 @@ def run_satdump_live(output_dir: Path, gain, ppm: int, timeout_s: int) -> subpro
     """Starta satdump live-avkodning av Meteor-M2-3."""
     cmd = [
         "satdump", "live",
-        "meteor_m2-x_lrpt_decode",
+        "meteor_m2-x_lrpt",
         str(output_dir),
         "--source",     "rtlsdr",
         "--samplerate", str(METEOR_SR),
