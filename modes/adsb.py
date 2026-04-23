@@ -131,15 +131,17 @@ def print_table(stop_event):
         if not aktiva:
             print("  (Inga flygplan synliga ännu – väntar på signaler...)")
         else:
-            print(f"  {'ICAO':<8} {'Anropssignal':<12} {'Höjd (ft)':<10} {'Hast. (kt)':<11} {'Kurs':<7} {'Stigbana'}")
-            print("  " + "─" * 64)
+            print(f"  {'ICAO':<8} {'Anropssignal':<12} {'Höjd (ft)':<10} {'Hast. (kt)':<11} {'Kurs':<7} {'Stigbana':<9} {'Lat':>9} {'Lon':>10}")
+            print("  " + "─" * 86)
             for icao, info in sorted(aktiva.items()):
                 cs  = info.get("callsign", "–")
                 alt = f"{info['altitude_ft']:>8}" if "altitude_ft" in info else "       –"
                 spd = f"{info['speed_kt']:>7.0f}"  if "speed_kt"    in info else "      –"
                 hdg = f"{info['heading']:>5.0f}°"  if "heading"     in info else "     –"
                 vr  = f"{info['vrate']:>+7.0f}"    if "vrate"       in info else "      –"
-                print(f"  {icao:<8} {cs:<12} {alt}   {spd}    {hdg}  {vr}")
+                lat = f"{info['lat']:>9.4f}"        if "lat"         in info else "        –"
+                lon = f"{info['lon']:>10.4f}"       if "lon"         in info else "         –"
+                print(f"  {icao:<8} {cs:<12} {alt}   {spd}    {hdg}  {vr}  {lat} {lon}")
 
         time.sleep(2)
 
