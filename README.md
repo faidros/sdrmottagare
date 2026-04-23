@@ -17,6 +17,7 @@ Kör i terminalen och presenterar all information som text.
 | 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – i stort sett utfasat, möjligen museijärnvägar |
 | 9 | **📡 IoT-sniffning** | 868 MHz | LoRa, Z-Wave, smarta mätare, larm, dörrklockor (3 lägen) |
 | 10 | **🛰️ Meteor-M2-3** | 137.9 MHz | Vädersatellitbilder – PNG-filer på hårddisken (~1 km/pixel) |
+| 11 | **🛸 ISS APRS** | 145.825 MHz | APRS-paket från rymdstationen i realtid under varje pass |
 
 ---
 
@@ -51,12 +52,13 @@ Programmet använder två typer av beroenden:
 | Python-paket | `pyais` | NMEA-avkodning för AIS (läge 3) |
 | Python-paket | `numpy` | All signalbehandling |
 | Python-paket | `sounddevice` | Röstmottagning och järnväg (ljud) |
-| Python-paket | `ephem` | Passprediktion för Meteor-M2-3 (läge 10) |
+| Python-paket | `ephem` | Passprediktion för Meteor-M2-3 och ISS (läge 10–11) |
 | Externt program | `satdump` | Meteor-M2-3 LRPT-avkodning → PNG-bilder (läge 10) |
+| Externt program | `multimon-ng` | AFSK1200/APRS-avkodning för ISS (läge 11) |
 
 #### macOS
 ```bash
-brew install librtlsdr rtl_433 satdump readsb
+brew install librtlsdr rtl_433 satdump readsb multimon-ng
 
 # AIS-catcher finns inte i brew – bygg från källkod (cmake krävs):
 git clone https://github.com/jvde-github/AIS-catcher
@@ -263,6 +265,25 @@ Bilderna sparas i `~/sdr_bilder/meteor/<tidsstämpel>/` som PNG-filer. Öppna de
 
 ---
 
+### 🛸 ISS – ARISS APRS (läge 11)
+
+ISS passerar varje plats **4–6 gånger per dygn** med pass på 5–15 minuter. Amatörradioutrustningen ombord (ARISS – *Amateur Radio on the International Space Station*) sänder kontinuerligt **APRS-paket** på **145.825 MHz** med AFSK1200-modulering (1 200 baud audio FSK).
+
+Paketen innehåller:
+- **Positionsrapporter** från ISS:s eget transponder (RS0ISS)
+- **Statusmeddelanden** och telemetri
+- **Reläade paket** från markstationer som ISS hör på vägen upp
+
+Programmet hämtar aktuell TLE från Celestrak, beräknar nästa passager, räknar ner till AOS och startar sedan `rtl_fm | multimon-ng` för att avkoda paketen i realtid.
+
+**Sporadiskt** arrangerar ARISS även **SSTV-evenemang** på 145.800 MHz (2–4 ggr/år). Kolla schema på [ariss.net/sstv.html](https://ariss.net/sstv.html). Under sådana evenemang kan du lyssna manuellt i SDR#/GQRX och avkoda med QSSTV.
+
+**Antenn:** En enkel 2m dipol (~48 cm per arm) eller den medföljande dongel-antennen fungerar under höga pass (>30°). En discone-antenn ger bäst täckning.
+
+**Live-karta:** [aprs.fi/#call=RS0ISS](https://aprs.fi/#call=RS0ISS)
+
+---
+
 ## Projektstruktur
 
 ```
@@ -280,7 +301,8 @@ sdrmottagare/
     ├── voice.py           # Röstmottagning flyg AM / marin FM
     ├── railway.py         # Analogt tågradio 153–156 MHz  (ren Python FM)
     ├── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
-    └── satellite.py       # Meteor-M2-3 vädersatellitbilder 137.9 MHz  (ephem + satdump)
+    ├── satellite.py       # Meteor-M2-3 vädersatellitbilder 137.9 MHz  (ephem + satdump)
+    └── iss.py             # ISS APRS 145.825 MHz  (ephem + rtl_fm + multimon-ng)
 ```
 
 ---

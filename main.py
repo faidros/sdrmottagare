@@ -22,7 +22,7 @@ def menu_text() -> str:
     gain_str = f"{g} dB" if g != "auto" else "auto"
     return f"""
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.6           ║
+║         SDR Mottagare v1.7           ║
 ╠══════════════════════════════════════╣
 ║  1. Vädersensorer    (433 MHz)       ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
@@ -34,6 +34,7 @@ def menu_text() -> str:
 ║  8. 🚂 Järnväg       (153-156 MHz)   ║
 ║  9. 📡 IoT-sniffning (868 MHz)       ║
 ║ 10. 🛰️  Satellit Meteor-M2 (137 MHz)  ║
+║ 11. 🛸 ISS APRS        (145 MHz)     ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -189,6 +190,9 @@ def main():
             elif val == "10":
                 from modes.satellite import run_satellite
                 run_satellite(settings=SETTINGS)
+            elif val == "11":
+                from modes.iss import run_iss
+                run_iss(settings=SETTINGS)
             elif val in ("s", "i"):
                 show_settings()
             elif val in ("a", "0", "q"):
