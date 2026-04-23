@@ -14,7 +14,7 @@ Kör i terminalen och presenterar all information som text.
 | 5 | **POCSAG/FLEX** | 148–932 MHz | Personsökare: räddningstjänst, sjukhus |
 | 6 | **Spektrum & Skanner** | Valfritt | Realtids-FFT, frekvensskanner, signalstyrkemätare |
 | 7 | **Röst flyg/marin** | 118–400 MHz / 156–174 MHz | Lyssna på flygkontroll (AM) och båttrafik (FM) |
-| 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – Trafikverket, SJ, lokförare (FM) |
+| 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – i stort sett utfasat, möjligen museijärnvägar |
 | 9 | **📡 IoT-sniffning** | 868 MHz | LoRa, Z-Wave, smarta mätare, larm, dörrklockor (3 lägen) |
 | 10 | **🛰️ Meteor-M2-3** | 137.9 MHz | Vädersatellitbilder – PNG-filer på hårddisken (~1 km/pixel) |
 
@@ -187,9 +187,23 @@ Eller utan att aktivera venv:
 - Kan uppstå vid frekvenser nära gränserna för dongeln (~24 MHz–1,75 GHz)
 
 ### Inga järnvägssignaler hörs
-- Tågradio är VHF FM med relativt låg effekt – du behöver vara nära en järnvägslinje
-- Prova nödkanalen **154.000 MHz** först (mest aktiv)
-- En vertikal antenn för ~150 MHz (~50 cm) ger bäst resultat
+- Det analoga tågradionätet (153–156 MHz) är i stort sett **utfasat i Sverige** – Trafikverket och de flesta operatörer kör numera digitalt (GSM-R/TETRA)
+- Du kan möjligen höra **museijärnvägar och ångloket** på frekvenserna under helger och evenemang – kolla lokala museijärnvägars säsongsprogram
+- Prova nödkanalen **154.000 MHz** – den kan fortfarande vara aktiv på äldre sträckor
+- Du behöver vara inom ca 10–20 km från järnvägslinjen; en vertikal ~50 cm-antenn ger bäst resultat
+
+### 🚂 Analogt tågradio – historik och vad du kan höra
+
+Det svenska järnvägsnätet gick under 2010-talet successivt över från **analogt VHF FM** (153–156 MHz) till **GSM-R** (digitalt, 876–880 / 921–925 MHz) som inte går att lyssna på med en RTL-SDR utan specialhårdvara. Idag är det analoga nätet i stort sett helt avvecklat för reguljär trafik.
+
+**Vad du ändå kan höra:**
+- **Museijärnvägar** – ett flertal svenska museijärnvägar (t.ex. Östra Södermanlands Järnväg, Norra Vätternbanan, Öppna spåret) använder fortfarande analog VHF-radio för sin verksamhet, framför allt under sommarsäsongen och på museiloksdagar
+- **Äldre sidospår och industrispår** – en del privatägda spår och hamnspår kan fortfarande ha analogt radio
+- **154.000 MHz** brukar vara den kanal som i första hand testas – det är en av de historiska nödkanalerna
+
+Om du bor nära en museijärnväg och lyssnar under ett ångloksevenemang har du goda chanser att höra lokförare och stationsvärd kommunicera.
+
+
 
 ### Inga IoT-signaler på 868 MHz
 - LoRaWAN-paket kan komma sällan (var 10:e sekund till var 15:e minut beroende på enhet)
