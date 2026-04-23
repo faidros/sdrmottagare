@@ -1,7 +1,16 @@
 """
 Autotrack – Automatisk satellitspaning (läge 12)
 
-Hämtar TLE för ISS och Meteor-M2-3, beräknar alla kommande pass de
+Hämdef build_schedule(lat: float, lon: float, elev: int,
+                   min_el: float, hours: int = 24) -> list[dict]:
+    """
+    Hämta TLE för ISS, Meteor och NOAA 15/18/19 och returnera en
+    tidsordnad lista med pass med maxelevation >= min_el inom `hours` timmar.
+    Varje post: {sat, aos, los, max_el, dur_s, tle}
+    """
+    from modes.satellite import fetch_tle as met_fetch, find_passes as met_passes, METEOR_NAME
+    from modes.iss import fetch_tle as iss_fetch, find_passes as iss_passes
+    from modes.noaa import fetch_all_tles as noaa_fetch, find_passes as noaa_passesör ISS och Meteor-M2-3, beräknar alla kommande pass de
 närmaste 24 timmarna, filtrerar på valbar minimielevation och kör
 sedan automatiskt rätt mottagare vid varje AOS:
 
@@ -92,6 +101,16 @@ def build_schedule(lat: float, lon: float, elev: int,
     else:
         print("  ⚠️  Kunde inte hämta ISS TLE.")
 
+    # ── NOAA 15 / 18 / 19 ─────────────────────────────────────────
+    noaa_tles = noaa_fetch()
+    for noaa_name, noaa_tle in noaa_tles.items():
+        sat_key = noaa_name.lower().replace(" ", "_")  # "noaa_15" etc
+        for p in noaa_passes(lat, lon, elev, noaa_tle, noaa_name, count=8):
+            if p["aos"] > cutoff:
+                break
+            if p["max_el"] >= min_el and p["aos"] >= now - timedelta(minutes=1):
+                results.append({**p, "sat": sat_key, "tle": noaa_tle})
+
     results.sort(key=lambda x: x["aos"])
     return results
 
@@ -102,7 +121,18 @@ def print_schedule(schedule: list[dict]):
           f"{'Dur':<8}  {'Max el':<7}  {'Kvalitet':<8}  Väntan")
     print("  " + "─" * 72)
     for i, p in enumerate(schedule, 1):
-        name    = "🛸 ISS" if p["sat"] == "iss" else "🛰️  Meteor"
+        if p["sat"] == "iss":
+            name = "🛸 ISS"
+        elif p["sat"] == "meteor":
+            name = "🛰️  Meteor"
+        elif p["sat"] == "noaa_15":
+            name = "📡 NOAA 15"
+        elif p["sat"] == "noaa_18":
+            name = "📡 NOAA 18"
+        elif p["sat"] == "noaa_19":
+            name = "� NOAA 19"
+        else:
+            name = p["sat"]
         date    = p["aos"].astimezone().strftime("%d %b")
         aos_s   = p["aos"].astimezone().strftime("%H:%M")
         los_s   = p["los"].astimezone().strftime("%H:%M")
@@ -127,7 +157,7 @@ def run_autotrack(settings: dict | None = None):
 
     print("\n" + "=" * 60)
     print(" 🔭 Autotrack – automatisk satellitspaning")
-    print(" ISS APRS (145.825 MHz) + Meteor-M2-3 (137.9 MHz)")
+    print(" ISS (145 MHz) + Meteor-M2-3 (137.9 MHz) + NOAA 15/18/19 (137 MHz)")
     print("=" * 60)
 
     if ephem is None:
@@ -138,8 +168,9 @@ def run_autotrack(settings: dict | None = None):
   Programmet beräknar alla kommande pass och startar
   automatiskt rätt mottagare vid varje AOS:
 
-    🛸 ISS     → APRS-paket + audio.raw (~/sdr_data/iss/)
-    🛰️  Meteor  → PNG-bilder via SatDump (~/sdr_bilder/meteor/)
+    🛸 ISS          → APRS-paket + audio.raw (~/sdr_data/iss/)
+    🛰️  Meteor-M2-3  → PNG-bilder via SatDump (~/sdr_bilder/meteor/)
+    📡 NOAA 15/18/19 → APT-bilder via SatDump (~/sdr_bilder/noaa/)
 
   Kör tills du trycker Ctrl+C.
 """)
@@ -190,6 +221,12 @@ def run_autotrack(settings: dict | None = None):
     # ── Huvudloop ────────────────────────────────────────────────────
     from modes.iss import receive_pass as iss_receive
     from modes.satellite import countdown_and_record as met_receive
+    from modes.noaa import record_pass as noaa_receive
+
+    def sat_label(sat: str) -> str:
+        return {"iss": "🛸 ISS", "meteor": "🛰️  Meteor-M2-3",
+                "noaa_15": "📡 NOAA 15", "noaa_18": "📡 NOAA 18",
+                "noaa_19": "📡 NOAA 19"}.get(sat, sat.upper())
 
     completed = 0
     for idx, p in enumerate(schedule):
@@ -197,23 +234,23 @@ def run_autotrack(settings: dict | None = None):
 
         # Hoppa över pass som redan passerat
         if p["los"] < now:
-            print(f"\n  ⏭  Pass {idx+1}/{len(schedule)} ({p['sat'].upper()}) har redan passerat, hoppar över.")
+            print(f"\n  ⏭  Pass {idx+1}/{len(schedule)} ({sat_label(p['sat'])}) har redan passerat, hoppar över.")
             continue
 
-        sat_label = "🛸 ISS" if p["sat"] == "iss" else "🛰️  Meteor-M2-3"
-        aos_local = p["aos"].astimezone().strftime("%H:%M:%S")
         remaining = len(schedule) - idx - 1
-
         print(f"\n{'═'*60}")
-        print(f"  Pass {idx+1}/{len(schedule)}  –  {sat_label}")
+        print(f"  Pass {idx+1}/{len(schedule)}  –  {sat_label(p['sat'])}")
         print(f"  {remaining} pass kvar efter detta")
         print(f"{'═'*60}")
 
         try:
             if p["sat"] == "iss":
                 iss_receive(p, settings)
-            else:
+            elif p["sat"] == "meteor":
                 met_receive(p, settings)
+            else:
+                # NOAA 15/18/19 – record_pass förväntar sig freq i p
+                noaa_receive(p, settings)
             completed += 1
         except KeyboardInterrupt:
             print(f"\n\n  Autotrack avbruten efter {completed} avklarade pass.")
@@ -221,16 +258,16 @@ def run_autotrack(settings: dict | None = None):
 
         # Kort paus mellan pass
         if idx < len(schedule) - 1:
-            next_p   = schedule[idx + 1]
-            next_sat = "🛸 ISS" if next_p["sat"] == "iss" else "🛰️  Meteor"
+            next_p  = schedule[idx + 1]
             next_aos = next_p["aos"].astimezone().strftime("%H:%M")
             gap_s    = (next_p["aos"] - datetime.now(timezone.utc)).total_seconds()
             gap_m    = int(gap_s // 60)
-            print(f"\n  ✅ Pass klart. Nästa: {next_sat} kl {next_aos} (om {gap_m} min)")
+            print(f"\n  ✅ Pass klart. Nästa: {sat_label(next_p['sat'])} kl {next_aos} (om {gap_m} min)")
             print("  (Ctrl+C för att avbryta autotrack)\n")
 
     print(f"\n{'═'*60}")
     print(f"  🏁 Autotrack klar!  {completed} av {len(schedule)} pass genomförda.")
-    print(f"  ISS-data:    ~/sdr_data/iss/")
-    print(f"  Meteorbilder: ~/sdr_bilder/meteor/")
+    print(f"  ISS-data:      ~/sdr_data/iss/")
+    print(f"  Meteorbilder:  ~/sdr_bilder/meteor/")
+    print(f"  NOAA-bilder:   ~/sdr_bilder/noaa/")
     print(f"{'═'*60}\n")
