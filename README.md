@@ -11,7 +11,7 @@ Kör i terminalen och presenterar all information som text.
 | 2 | **Flygtrafik ADS-B** | 1090 MHz | Tabell med flygplan: position, höjd, hastighet, anropssignal |
 | 3 | **Fartyg AIS** | 162 MHz | Tabell med fartyg: position, namn, fart, kurs |
 | 4 | **ACARS** | 129–132 MHz | Textmeddelanden och positionsrapporter från flygplan |
-| 5 | **POCSAG/FLEX** | 148–932 MHz | Personsökare: räddningstjänst, sjukhus |
+| 5 | **POCSAG/FLEX** | 148–932 MHz | Personsökare: sjukhus, räddningstjänst – trafiken är gles, vänta tålmodigt |
 | 6 | **Spektrum & Skanner** | Valfritt | Realtids-FFT, frekvensskanner, signalstyrkemätare |
 | 7 | **Röst flyg/marin** | 118–400 MHz / 156–174 MHz | Lyssna på flygkontroll (AM) och båttrafik (FM) |
 | 8 | **🚂 Järnväg** | 153–156 MHz | Analogt tågradio – i stort sett utfasat, möjligen museijärnvägar |
@@ -204,6 +204,26 @@ Det svenska järnvägsnätet gick under 2010-talet successivt över från **anal
 Om du bor nära en museijärnväg och lyssnar under ett ångloksevenemang har du goda chanser att höra lokförare och stationsvärd kommunicera.
 
 
+
+### Inga POCSAG/FLEX-meddelanden hörs
+- POCSAG och FLEX används fortfarande i Sverige, men trafiken är **gles och oregelbunden** – du kan vänta i timmar utan att höra något
+- Den mest aktiva svenska frekvensen är **169.6375 MHz** (RAKEL-kanalerna för personsökare, blåljus och sjukhus) – börja där
+- **931.9375 MHz** är en annan aktiv FLEX-frekvens som används av en del sjukhus och räddningstjänst
+- Håll läget igång i minst 15–30 minuter; enstaka meddelanden kan komma med lång paus emellan
+- Antennen spelar stor roll – en trådantenn på ~44 cm (λ/4 för 169 MHz) är betydligt bättre än dongeln medföljer
+
+### 📟 POCSAG och FLEX – historik och realism
+
+**POCSAG** (Post Office Code Standardisation Advisory Group) och **FLEX** är protokoll för enkelriktade personsökare (pagers). De sänds som FSK på VHF/UHF och är helt orypterade – allt som sänds är läsbart i klartext.
+
+**Vad du kan höra i Sverige:**
+- **Sjukvård** – sjukhus, vårdcentraler och ambulansverksamhet använder pagers parallellt med RAKEL för redundans. Larmtexter, patientnummer och rumsnummer kan dyka upp
+- **Räddningstjänst** – SOS Alarm aktiverar frivilliga brandmän via POCSAG/FLEX på 169.6375 MHz i många kommuner, framför allt i glesbygd där RAKEL-täckningen kan vara sämre
+- **Industri** – processanläggningar och raffinaderier använder ibland pagers för driftsmeddelanden
+
+**Realism:** I en stad med flera sjukhus och en aktiv räddningstjänst kan du förvänta dig **enstaka meddelanden per timme** på en bra frekvens. På landsbygd kan det gå timmar utan något. Det är inte ovanligt att köra läget i bakgrunden i flera timmar och sedan plötsligt se en larmtext.
+
+> ⚠️ **Observera:** Det är lagligt att *ta emot* okrypterade radiosignaler för privat bruk i Sverige, men du ska inte vidarebefordra eller publicera meddelanden som rör enskilda personers hälsa eller säkerhet.
 
 ### Inga IoT-signaler på 868 MHz
 - LoRaWAN-paket kan komma sällan (var 10:e sekund till var 15:e minut beroende på enhet)
