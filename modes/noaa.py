@@ -323,6 +323,13 @@ def record_pass(p: dict, settings: dict):
         print("  • Passet var för lågt (<20° ger ofta inget resultat)")
         print("  • Antennen är inte anpassad för 137 MHz")
         print("  • Signalen för svag – prova ett 🟢 Bra-pass (>40°)")
+        # Rensa tom mapp
+        try:
+            if not any(output_dir.iterdir()):
+                output_dir.rmdir()
+                print(f"  🗑️  Tom mapp borttagen: {output_dir.name}")
+        except Exception:
+            pass
 
 
 # ── Huvudfunktion ──────────────────────────────────────────────────────────────
