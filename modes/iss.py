@@ -36,11 +36,13 @@ except ImportError:
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 
 CONFIG_FILE   = Path.home() / ".sdrmottagare.json"  # Delas med satellite.py
+DATA_DIR      = Path.home() / "sdr_data" / "iss"    # Sparas här
 TLE_URL       = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE"
 ISS_NAME      = "ISS (ZARYA)"
 APRS_FREQ     = "145.825M"   # Hz – ARISS APRS nedlänk
 SSTV_FREQ     = "145.800M"   # Hz – ARISS SSTV (sporadiskt)
 MIN_ELEVATION = 10            # Minsta maxelevation för ett bra pass
+AUDIO_RATE    = 22050         # Hz – sampelfrekvens för FM-ljud
 
 
 # ── Hjälpfunktioner ────────────────────────────────────────────────────────────
@@ -226,22 +228,39 @@ def format_aprs(pkt: dict, ts: str) -> str:
 
 # ── Mottagning ─────────────────────────────────────────────────────────────────
 
+def make_pass_dir(p: dict) -> Path:
+    """Skapa och returnera en katalog för detta pass."""
+    ts  = p["aos"].astimezone().strftime("%Y-%m-%d_%H%M")
+    d   = DATA_DIR / ts
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def receive_pass(p: dict, settings: dict):
-    """Vänta på AOS och ta emot APRS under passet."""
+    """Vänta på AOS och ta emot APRS + spela in FM-ljud under passet."""
+    import select
+
     gain = settings.get("gain", 40)
     ppm  = settings.get("ppm",  0)
 
     aos_local = p["aos"].astimezone().strftime("%H:%M:%S")
     los_local = p["los"].astimezone().strftime("%H:%M:%S")
 
+    # Skapa katalog för detta pass
+    pass_dir   = make_pass_dir(p)
+    jsonl_file = pass_dir / "aprs.jsonl"   # Maskinläsbar, ett JSON-objekt per rad
+    txt_file   = pass_dir / "aprs.txt"     # Läsbar logg
+    audio_file = pass_dir / "audio.raw"    # Raw signed 16-bit 22050 Hz mono FM
+
     print(f"\n  🛸 ISS  |  AOS {aos_local}  →  LOS {los_local}")
     print(f"  Max elevation: {p['max_el']:.0f}°  |  Varaktighet: {p['dur_s']//60}m {p['dur_s']%60:02d}s")
-    print(f"  Frekvens: {APRS_FREQ} (ARISS APRS)\n")
+    print(f"  Frekvens: {APRS_FREQ} (ARISS APRS)")
+    print(f"  Sparar till: {pass_dir}\n")
     print("─" * 60)
 
     # ── Nedräkning ─────────────────────────────────────────────────
     print("  Väntar på AOS... (Ctrl+C för att avbryta)\n")
-    wait_s_total = max(0, (p["aos"] - datetime.now(timezone.utc)).total_seconds())
+    wait_s_total = max(1, (p["aos"] - datetime.now(timezone.utc)).total_seconds())
 
     try:
         while True:
@@ -251,9 +270,9 @@ def receive_pass(p: dict, settings: dict):
                 break
             m, s = divmod(int(remain), 60)
             h, m = divmod(m, 60)
-            frac  = 1 - remain / max(wait_s_total, 1)
             bar_w = 28
-            bar   = "█" * int(frac * bar_w) + "░" * (bar_w - int(frac * bar_w))
+            bar   = "█" * int((1 - remain / wait_s_total) * bar_w) + \
+                    "░" * int(remain / wait_s_total * bar_w)
             print(f"\r  ⏳ {h:02d}:{m:02d}:{s:02d}  [{bar}]  AOS {aos_local}  ", end="", flush=True)
             time.sleep(1)
     except KeyboardInterrupt:
@@ -261,29 +280,33 @@ def receive_pass(p: dict, settings: dict):
         return
 
     # ── Pass börjar ────────────────────────────────────────────────
-    print(f"\n\n  🟢 AOS! Startar APRS-mottagning på {APRS_FREQ}...\n")
+    print(f"\n\n  🟢 AOS! Startar APRS-mottagning + inspelning...\n")
     print(f"  {'Tid':<10}  {'Källa':<12}  {'Meddelande'}")
     print("  " + "─" * 56)
 
+    # Pipeline: rtl_fm → tee (→ audio.raw) → multimon-ng
     rtlfm_cmd = [
         "rtl_fm",
         "-f", APRS_FREQ,
         "-M", "fm",
-        "-s", "22050",
-        "-r", "22050",
+        "-s", str(AUDIO_RATE),
+        "-r", str(AUDIO_RATE),
         "-g", str(int(gain)),
         "-p", str(int(ppm)),
     ]
+    tee_cmd = ["tee", str(audio_file)]   # Skriver en kopia till disk, skickar vidare
     multimon_cmd = [
         "multimon-ng",
         "-t", "raw",
-        "-q",          # Tyst – skriv bara avkodade paket
+        "-q",           # Tyst – skriv bara avkodade paket
         "-a", "AFSK1200",
         "-",
     ]
 
-    rtlfm = None
+    rtlfm   = None
+    tee_p   = None
     multimon = None
+    pkt_count = 0
 
     try:
         rtlfm = subprocess.Popen(
@@ -291,42 +314,77 @@ def receive_pass(p: dict, settings: dict):
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
+        # tee skriver FM-rådata till audio_file OCH skickar vidare till multimon-ng
+        tee_p = subprocess.Popen(
+            tee_cmd,
+            stdin=rtlfm.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        rtlfm.stdout.close()  # Tillåt rtlfm att få SIGPIPE om tee avslutas
+
         multimon = subprocess.Popen(
             multimon_cmd,
-            stdin=rtlfm.stdout,
+            stdin=tee_p.stdout,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
             bufsize=1,
         )
-        rtlfm.stdout.close()  # Tillåt rtlfm att få SIGPIPE om multimon avslutas
+        tee_p.stdout.close()  # Tillåt tee att få SIGPIPE om multimon avslutas
 
-        pkt_count = 0
-        end_time  = p["los"]
+        end_time = p["los"]
 
-        while True:
-            now    = datetime.now(timezone.utc)
-            remain = (end_time - now).total_seconds()
+        # Öppna loggfiler
+        with open(jsonl_file, "w") as fj, open(txt_file, "w") as ft:
+            # Skriv header i textfilen
+            ft.write(f"ISS APRS-logg – {p['aos'].astimezone().strftime('%Y-%m-%d')}\n")
+            ft.write(f"AOS: {aos_local}  LOS: {los_local}  "
+                     f"Max el: {p['max_el']:.0f}°  Frekvens: {APRS_FREQ}\n")
+            ft.write("─" * 60 + "\n")
+            ft.flush()
 
-            if remain <= 0:
-                break
-
-            # Icke-blockerande läsning
-            import select
-            rlist, _, _ = select.select([multimon.stdout], [], [], 0.5)
-            if rlist:
-                line = multimon.stdout.readline()
-                if not line:
+            while True:
+                now    = datetime.now(timezone.utc)
+                remain = (end_time - now).total_seconds()
+                if remain <= 0:
                     break
-                line = line.rstrip()
-                pkt = parse_aprs(line)
-                if pkt:
-                    ts = datetime.now().strftime("%H:%M:%S")
-                    print(format_aprs(pkt, ts))
-                    pkt_count += 1
 
-            m2, s2 = divmod(int(remain), 60)
-            print(f"\r  🔴 LOS om {m2:02d}:{s2:02d}  |  {pkt_count} paket mottagna  ", end="", flush=True)
+                rlist, _, _ = select.select([multimon.stdout], [], [], 0.5)
+                if rlist:
+                    line = multimon.stdout.readline()
+                    if not line:
+                        break
+                    raw  = line.rstrip()
+                    pkt  = parse_aprs(raw)
+                    if pkt:
+                        ts_now = datetime.now()
+                        ts_str = ts_now.strftime("%H:%M:%S")
+
+                        # Visa i terminalen
+                        print(format_aprs(pkt, ts_str))
+
+                        # Spara som JSON (maskinläsbar)
+                        record = {
+                            "time":    ts_now.isoformat(),
+                            "from":    pkt["from"],
+                            "to":      pkt["to"],
+                            "path":    pkt["path"],
+                            "message": pkt["message"],
+                            "raw":     raw,
+                        }
+                        fj.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        fj.flush()
+
+                        # Spara som text (läsbar)
+                        ft.write(f"{ts_str}  {pkt['from']:<12}  {pkt['message']}\n")
+                        ft.flush()
+
+                        pkt_count += 1
+
+                m2, s2 = divmod(int(remain), 60)
+                print(f"\r  🔴 LOS om {m2:02d}:{s2:02d}  |  {pkt_count} paket mottagna  ",
+                      end="", flush=True)
 
     except FileNotFoundError as e:
         missing = "rtl_fm" if "rtl_fm" in str(e) else "multimon-ng"
@@ -339,21 +397,33 @@ def receive_pass(p: dict, settings: dict):
     except KeyboardInterrupt:
         print("\n\n  Avbruten av användaren.")
     finally:
-        if multimon:
-            multimon.terminate()
-            try:
-                multimon.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                multimon.kill()
-        if rtlfm:
-            rtlfm.terminate()
-            try:
-                rtlfm.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                rtlfm.kill()
+        for proc in (multimon, tee_p, rtlfm):
+            if proc:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
 
+    # ── Sammanfattning ──────────────────────────────────────────────
     print(f"\n\n  🏁 LOS. Passet avslutat.")
-    print(f"  Totalt mottagna paket: {pkt_count if 'pkt_count' in dir() else 0}")
+    print(f"\n  ─── Sparade filer ───────────────────────────────────")
+    print(f"  📁 {pass_dir}/")
+
+    if jsonl_file.exists() and jsonl_file.stat().st_size > 0:
+        print(f"  📄 aprs.jsonl  – {pkt_count} APRS-paket  (JSON Lines, ett per rad)")
+        print(f"  📄 aprs.txt    – läsbar logg")
+    else:
+        print(f"  ⚠️  Inga APRS-paket togs emot under passet.")
+
+    if audio_file.exists():
+        kb = audio_file.stat().st_size // 1024
+        print(f"  🎙️  audio.raw   – {kb} KB  (signed 16-bit {AUDIO_RATE} Hz mono FM)")
+        print(f"\n  Ljud kan öppnas i Audacity: File → Import → Raw Data")
+        print(f"  Inställningar: Signed 16-bit PCM, {AUDIO_RATE} Hz, Mono")
+        print(f"  SSTV-avkodning: öppna i QSSTV och välj auto-detect")
+
+    print(f"\n  Öppna mappen: open \"{pass_dir}\"")
 
 
 # ── Huvudfunktion ──────────────────────────────────────────────────────────────
