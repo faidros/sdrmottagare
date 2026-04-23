@@ -214,7 +214,7 @@ Om du bor nära en museijärnväg och lyssnar under ett ångloksevenemang har du
 
 ### 📟 POCSAG och FLEX – historik och realism
 
-**POCSAG** (Post Office Code Standardisation Advisory Group) och **FLEX** är protokoll för enkelriktade personsökare (pagers). De sänds som FSK på VHF/UHF och är helt orypterade – allt som sänds är läsbart i klartext.
+**POCSAG** (Post Office Code Standardisation Advisory Group) och **FLEX** är protokoll för enkelriktade personsökare (pagers). De sänds som FSK på VHF/UHF och är helt okrypterade – allt som sänds är läsbart i klartext.
 
 **Vad du kan höra i Sverige:**
 - **Sjukvård** – sjukhus, vårdcentraler och ambulansverksamhet använder pagers parallellt med RAKEL för redundans. Larmtexter, patientnummer och rumsnummer kan dyka upp
@@ -302,6 +302,118 @@ sdrmottagare/
 | Meteor-M2-3 | **137.900 MHz** | ~54 cm (dipol, V-form) | Satellitbilder – fri sikt mot himlen krävs |
 
 > **Tips:** Klipp en trådbit till rätt längd och anslut den till antenningången – en enkel kvartsvågs-monopol ger förvånansvärt bra mottagning för de flesta av dessa signaler.
+
+---
+
+## Antenner
+
+Antennen är den enskilt viktigaste faktorn för mottagningskvalitet – en bra antenn väger tungt upp för en svag signal. Här är de vanligaste typerna och när de passar.
+
+### Medföljer-piskan (telescopisk dipol/monopol)
+
+Den lilla antenn som följer med de flesta donglar. Teleskopbar, ofta 15–30 cm i utfällt läge.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Inget att bygga, fungerar för starka lokala signaler (FM-radio, nära ADS-B-sändare) |
+| ❌ **Nackdelar** | Dålig impedansanpassning, ingen vinkelriktning, faller ihop lätt, hopplös för satelliter |
+| 🎯 **Passar för** | Testa att dongeln fungerar, starka VHF/UHF-signaler på nära håll |
+
+---
+
+### Kvartsvågs-monopol (λ/4)
+
+En rak trådantenn vars längd är en fjärdedel av målfrekvensens våglängd. Enklast möjliga hemmabygge – klipp en trådbit och stick in i SMA-kontakten.
+
+**Formel:** `längd (cm) = 7500 / frekvens (MHz)`
+
+| Frekvens | Längd |
+|----------|-------|
+| 137 MHz (Meteor) | ~54 cm |
+| 162 MHz (AIS) | ~46 cm |
+| 433 MHz (IoT/väder) | ~17 cm |
+| 868 MHz (LoRa) | ~8,6 cm |
+| 1090 MHz (ADS-B) | ~6,9 cm |
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Extremt enkel att bygga, bra för sin storlek, vertikal = rundstrålande |
+| ❌ **Nackdelar** | Behöver ett jordplan (metallyta) under sig för bäst prestanda |
+| 🎯 **Passar för** | ADS-B, AIS, LoRa, väder – alla lägen i det här programmet |
+
+---
+
+### Koaxial kolinear ("Co-Co")
+
+Flera halvvågs-element kopplade i serie i koaxialkabeln – ger 3–6 dB högre förstärkning än en monopol i horisontalplanet, på bekostnad av elevationsvinkel.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Högre gain mot horisonten, bra för ADS-B och AIS, lätt att bygga av RG-58 |
+| ❌ **Nackdelar** | Kräver exakt kapning av kabeln, känslig för byggfel, sämre för höga elevationsvinklar |
+| 🎯 **Passar för** | ADS-B 1090 MHz, AIS 162 MHz – signaler som kommer från horisonten |
+
+---
+
+### V-dipol (vinklad dipol, "rabbit ears")
+
+Två armar vinklade till V-form (~120–130° öppning), monterad horisontellt. Ger cirkulär polarisation och bred elevationstäckning – idealisk för satellit-LRPT.
+
+**Armarna för Meteor-M2-3:** ~54 cm vardera, vinklade utåt-uppåt, antennens plan riktat mot himlen.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Bra för satelliter (bred elevation), accepterar höger- och vänsterpolariserad signal |
+| ❌ **Nackdelar** | Lite större och kräver montering utomhus eller vid fönster |
+| 🎯 **Passar för** | **Meteor-M2-3 137.9 MHz** – bästa enkla antennen för LRPT-mottagning |
+
+---
+
+### Turniket-antenn (crossed dipole / turnstile)
+
+Fyra dipoler arrangerade i ett kors i horisontalplanet, fasade 90° mot varandra. Ger cirkulär polarisation (RHCP) och nästan hemisfärisk täckning uppåt.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Nära perfekt för LEO-satelliter, jämn täckning hela himlen, bättre än V-dipol |
+| ❌ **Nackdelar** | Mer komplex att bygga, kräver fasningsnätverk |
+| 🎯 **Passar för** | Meteor-M2-3, NOAA-satelliter – om du vill ta emot satellitbilder regelbundet |
+
+---
+
+### Yagi-antenn (riktantenn)
+
+En riktat antenn med ett aktivt element och flera reflektorer/direktorer. Hög gain (6–15 dBd) men smal stråle – du måste peka den mot signalkällan.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Hög gain, undertrycker störningar från andra riktningar |
+| ❌ **Nackdelar** | Måste riktas manuellt eller mekaniskt, oanvändbar för rundstrålande mottagning |
+| 🎯 **Passar för** | Svaga punktkällor: fjärr-ADS-B, riktade IoT-enheter, fältmätning |
+
+---
+
+### Diskoneantenn (discone)
+
+Bred kon ovanför en skivreflektor – täcker ett extremt brett frekvensband (ofta 25 MHz–1,3 GHz) med konstant impedans.
+
+| | |
+|---|---|
+| ✅ **Fördelar** | Täcker *alla* lägen i det här programmet med en enda antenn, bra för skanning |
+| ❌ **Nackdelar** | Lägre gain än dedikerade antenner, dyrare (~300–800 kr), kräver utomhusmontage |
+| 🎯 **Passar för** | Den som vill ha en permanent utomhusantenn för alla lägen |
+
+---
+
+### Snabbguide: välj rätt antenn
+
+| Mål | Rekommenderad antenn |
+|-----|---------------------|
+| Komma igång snabbt | Kvartsvågs-monopol (trådbit i rätt längd) |
+| ADS-B + AIS (bästa räckvidd) | Co-Co kolinear, utomhus |
+| Meteor-M2-3 (enkel) | V-dipol, vid fönster mot himlen |
+| Meteor-M2-3 (bäst) | Turniket-antenn, utomhus |
+| Täcka alla frekvenser | Discone, utomhus |
 
 ---
 
