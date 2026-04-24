@@ -323,11 +323,11 @@ def record_pass(p: dict, settings: dict):
         print("  • Passet var för lågt (<20° ger ofta inget resultat)")
         print("  • Antennen är inte anpassad för 137 MHz")
         print("  • Signalen för svag – prova ett 🟢 Bra-pass (>40°)")
-        # Rensa tom mapp
+        # Rensa mappen – oavsett om den är tom eller bara innehåller råfiler utan bilddata
         try:
-            if not any(output_dir.iterdir()):
-                output_dir.rmdir()
-                print(f"  🗑️  Tom mapp borttagen: {output_dir.name}")
+            import shutil
+            shutil.rmtree(output_dir)
+            print(f"  🗑️  Mapp borttagen (inga bilder): {output_dir.name}")
         except Exception:
             pass
 

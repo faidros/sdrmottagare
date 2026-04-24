@@ -294,11 +294,11 @@ def countdown_and_record(p: dict, settings: dict):
         print("  • Signalen var för svag (prova högre elevation nästa gång)")
         print("  • Antennen är inte anpassad för 137 MHz")
         print("  • SatDump misslyckades – kolla loggar i output-mappen")
-        # Rensa tom mapp
+        # Rensa mappen – oavsett om den är tom eller bara innehåller .cadu utan bilddata
         try:
-            if not any(output_dir.iterdir()):
-                output_dir.rmdir()
-                print(f"  🗑️  Tom mapp borttagen: {output_dir.name}")
+            import shutil
+            shutil.rmtree(output_dir)
+            print(f"  🗑️  Mapp borttagen (inga bilder): {output_dir.name}")
         except Exception:
             pass
 
