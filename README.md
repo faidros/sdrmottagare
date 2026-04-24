@@ -18,8 +18,7 @@ Kör i terminalen och presenterar all information som text.
 | 9 | **📡 IoT-sniffning** | 868 MHz | LoRa, Z-Wave, smarta mätare, larm, dörrklockor (3 lägen) |
 | 10 | **🛰️ Meteor-M2-3** | 137.9 MHz | Vädersatellitbilder – PNG-filer på hårddisken (~1 km/pixel) |
 | 11 | **🛸 ISS APRS** | 145.825 MHz | APRS-paket från rymdstationen i realtid under varje pass |
-| 12 | **🔭 Autotrack** | 137–146 MHz | Automatisk spaning – schemalägger och spelar in alla satellitpass (ISS + Meteor + NOAA) |
-| 13 | **📡 NOAA APT** | 137 MHz | Bilder från NOAA 15/18/19 – analogt APT-format, ~4 km/pixel |
+| 12 | **🔭 Autotrack** | 137–146 MHz | Automatisk spaning – schemalägger och spelar in alla satellitpass (ISS + Meteor) |
 
 ---
 
@@ -301,31 +300,14 @@ Programmet hämtar aktuell TLE från Celestrak, beräknar nästa passager, räkn
 
 ---
 
-### 📡 NOAA APT – vädersatellitbilder (läge 13)
+###  Autotrack – automatisk satellitspaning (läge 12)
 
-NOAA 15, 18 och 19 är amerikanska vädersatelliter i polär bana som sänder bilder med analogt **APT**-format (Automatic Picture Transmission) på 137 MHz. APT är enklare att ta emot än Meteor-M2-3 LRPT – antennen behöver inte vara lika exakt och signalen är mer förlåtande vid låga elevationer.
-
-| Satellit | Frekvens | NORAD-ID |
-|----------|----------|----------|
-| NOAA 15 | 137.620 MHz | 25338 |
-| NOAA 18 | 137.9125 MHz | 28654 |
-| NOAA 19 | 137.100 MHz | 33591 |
-
-Varje pass ger två bilder: **kanal A** (synlig eller nära-IR) och **kanal B** (värme-IR). SatDump sparar dem i `~/sdr_bilder/noaa/<satellit>_<tidsstämpel>/`.
-
-**Antenn:** En enkel 137 MHz dipol (~54 cm per arm) eller V-dipol fungerar bra.
-
----
-
-### 🔭 Autotrack – automatisk satellitspaning (läge 12)
-
-Autotrack hämtar TLE för **alla fem satelliter** (ISS, Meteor-M2-3, NOAA 15/18/19), beräknar de kommande passerna de närmaste 24 timmarna och kör automatiskt rätt mottagare vid varje AOS:
+Autotrack hämtar TLE för **ISS och Meteor-M2-3**, beräknar de kommande passerna de närmaste 24 timmarna och kör automatiskt rätt mottagare vid varje AOS:
 
 | Satellit | Mottagare | Sparas i |
 |----------|-----------|----------|
 | ISS | rtl_fm + multimon-ng (APRS) | `~/sdr_data/iss/` |
 | Meteor-M2-3 | satdump live LRPT | `~/sdr_bilder/meteor/` |
-| NOAA 15/18/19 | satdump live APT | `~/sdr_bilder/noaa/` |
 
 Du väljer en **minimikvalitet** (Bra >40° / OK >20° / Alla >10°) – programmet visar sedan en tabell med alla kommande pass och startar när du trycker Enter. Om ett pass inte ger några bilder (tom output-mapp) rensas mappen bort automatiskt.
 
@@ -346,8 +328,7 @@ sdrmottagare/
     ├── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
     ├── satellite.py       # Meteor-M2-3 vädersatellitbilder 137.9 MHz  (ephem + satdump)
     ├── iss.py             # ISS APRS 145.825 MHz  (ephem + rtl_fm + multimon-ng)
-    ├── noaa.py            # NOAA 15/18/19 APT-bilder 137 MHz  (ephem + satdump)
-    └── autotrack.py       # Autotrack – schemalägger och kör alla satellitpass automatiskt
+    └── autotrack.py       # Autotrack – schemalägger och kör ISS+Meteor-pass automatiskt
 ```
 
 ---

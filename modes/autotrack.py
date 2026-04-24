@@ -35,11 +35,8 @@ def qual_symbol(elev: float) -> str:
 
 def sat_label(sat: str) -> str:
     return {
-        "iss":     "ISS",
-        "meteor":  "Meteor-M2-3",
-        "noaa_15": "NOAA 15",
-        "noaa_18": "NOAA 18",
-        "noaa_19": "NOAA 19",
+        "iss":    "ISS",
+        "meteor": "Meteor-M2-3",
     }.get(sat, sat.upper())
 
 
@@ -47,7 +44,6 @@ def build_schedule(lat: float, lon: float, elev: int,
                    min_el: float, hours: int = 24) -> list:
     from modes.satellite import fetch_tle as met_fetch, find_passes as met_passes, METEOR_NAME
     from modes.iss import fetch_tle as iss_fetch, find_passes as iss_passes
-    from modes.noaa import fetch_all_tles as noaa_fetch, find_passes as noaa_passes
 
     now    = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=hours)
@@ -72,15 +68,6 @@ def build_schedule(lat: float, lon: float, elev: int,
                 results.append({**p, "sat": "iss", "tle": iss_tle})
     else:
         print("  Kunde inte hamta ISS TLE.")
-
-    noaa_tles = noaa_fetch()
-    for noaa_name, noaa_tle in noaa_tles.items():
-        sat_key = noaa_name.lower().replace(" ", "_")
-        for p in noaa_passes(lat, lon, elev, noaa_tle, noaa_name, count=8):
-            if p["aos"] > cutoff:
-                break
-            if p["max_el"] >= min_el and p["aos"] >= now - timedelta(minutes=1):
-                results.append({**p, "sat": sat_key, "tle": noaa_tle})
 
     results.sort(key=lambda x: x["aos"])
     return results
@@ -114,7 +101,7 @@ def run_autotrack(settings=None):
 
     print("\n" + "=" * 60)
     print(" Autotrack - automatisk satellitspaning (lage 12)")
-    print(" ISS (145 MHz) + Meteor-M2-3 (137.9 MHz) + NOAA 15/18/19")
+    print(" ISS (145 MHz) + Meteor-M2-3 (137.9 MHz)")
     print("=" * 60)
 
     if ephem is None:
@@ -137,7 +124,7 @@ def run_autotrack(settings=None):
 
     cfg = load_config()
     if "lat" not in cfg:
-        print("  Ingen position sparad. Kor lage 10, 11 eller 13 forst.")
+        print("  Ingen position sparad. Kor lage 10 eller 11 forst.")
         return
     lat  = cfg["lat"]
     lon  = cfg["lon"]
@@ -163,7 +150,6 @@ def run_autotrack(settings=None):
 
     from modes.iss import receive_pass as iss_receive
     from modes.satellite import countdown_and_record as met_receive
-    from modes.noaa import record_pass as noaa_receive
 
     completed = 0
     for idx, p in enumerate(schedule):
@@ -180,10 +166,8 @@ def run_autotrack(settings=None):
         try:
             if p["sat"] == "iss":
                 iss_receive(p, settings)
-            elif p["sat"] == "meteor":
-                met_receive(p, settings)
             else:
-                noaa_receive(p, settings)
+                met_receive(p, settings)
             completed += 1
         except KeyboardInterrupt:
             print(f"\n\n  Autotrack avbruten efter {completed} avklarade pass.")
@@ -199,5 +183,4 @@ def run_autotrack(settings=None):
     print(f"  Autotrack klar!  {completed} av {len(schedule)} pass genomforda.")
     print(f"  ISS-data:     ~/sdr_data/iss/")
     print(f"  Meteorbilder: ~/sdr_bilder/meteor/")
-    print(f"  NOAA-bilder:  ~/sdr_bilder/noaa/")
     print(f"{'='*60}\n")

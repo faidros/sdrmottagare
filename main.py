@@ -35,8 +35,7 @@ def menu_text() -> str:
 ║  9. 📡 IoT-sniffning (868 MHz)       ║
 ║ 10. 🛰️  Satellit Meteor-M2 (137 MHz)  ║
 ║ 11. 🛸 ISS APRS        (145 MHz)     ║
-║ 12. 🔭 Autotrack ISS+Meteor+NOAA     ║
-║ 13. 📡 NOAA APT         (137 MHz)    ║
+║ 12. 🔭 Autotrack ISS+Meteor         ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -198,9 +197,6 @@ def main():
             elif val == "12":
                 from modes.autotrack import run_autotrack
                 run_autotrack(settings=SETTINGS)
-            elif val == "13":
-                from modes.noaa import run_noaa
-                run_noaa(settings=SETTINGS)
             elif val in ("s", "i"):
                 show_settings()
             elif val in ("a", "0", "q"):
