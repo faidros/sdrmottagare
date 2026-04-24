@@ -36,6 +36,7 @@ def menu_text() -> str:
 ║ 10. 🛰️  Satellit Meteor-M2 (137 MHz)  ║
 ║ 11. 🛸 ISS APRS        (145 MHz)     ║
 ║ 12. 🔭 Autotrack ISS+Meteor         ║
+║ 13. 📡 Inmarsat L-band (1537 MHz)   ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -197,6 +198,9 @@ def main():
             elif val == "12":
                 from modes.autotrack import run_autotrack
                 run_autotrack(settings=SETTINGS)
+            elif val == "13":
+                from modes.inmarsat import run_inmarsat
+                run_inmarsat(settings=SETTINGS)
             elif val in ("s", "i"):
                 show_settings()
             elif val in ("a", "0", "q"):
