@@ -62,30 +62,7 @@ def save_config(cfg: dict):
         json.dump(cfg, f, indent=2)
 
 
-def ask_position(cfg: dict) -> dict:
-    """Fråga efter position om den inte redan är sparad."""
-    if "lat" in cfg and "lon" in cfg:
-        lat, lon = cfg["lat"], cfg["lon"]
-        elev = cfg.get("elevation", 0)
-        print(f"\n  Sparad position: {lat:.4f}°N  {lon:.4f}°E  ({elev} m ö.h.)")
-        print("  Tryck Enter för att använda, eller 'c' för att ändra: ", end="")
-        if input().strip().lower() != "c":
-            return cfg
-
-    print("\n  Ange din position (används för passprediktion):")
-    print("  (Ungefärlig position på stadsnivå räcker)\n")
-    try:
-        lat  = float(input("  Latitud  (°N, t.ex. 59.33 för Stockholm): "))
-        lon  = float(input("  Longitud (°E, t.ex. 18.07 för Stockholm): "))
-        elev = int(input("  Höjd (m ö.h., tryck Enter för 0): ").strip() or "0")
-    except ValueError:
-        print("  Ogiltigt värde, använder Stockholm som standard.")
-        lat, lon, elev = 59.33, 18.07, 20
-
-    cfg.update({"lat": lat, "lon": lon, "elevation": elev})
-    save_config(cfg)
-    print(f"\n  ✅ Position sparad: {lat:.4f}°N  {lon:.4f}°E  {elev} m")
-    return cfg
+from modes.location import ask_position
 
 
 # ── TLE-hämtning ───────────────────────────────────────────────────────────────
