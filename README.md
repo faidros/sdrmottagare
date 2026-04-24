@@ -151,8 +151,7 @@ pip install -r requirements.txt
 
 `requirements.txt` innehåller:
 ```
-pyrtlsdr>=0.3.0    # RTL-SDR-gränssnitt (ADS-B, AIS, ACARS, röst m.fl.)
-pyModeS>=2.10      # ADS-B-avkodning (läge 2: flygplan 1090 MHz)
+pyrtlsdr>=0.3.0    # RTL-SDR-gränssnitt (spektrum, röst, paging, IoT m.fl.)
 pyais>=3.0.0       # AIS-avkodning (läge 3: fartyg 162 MHz)
 numpy>=1.24.0      # Signalbehandling
 sounddevice>=0.4.0 # Ljuduppspelning (röst och järnväg)
