@@ -39,6 +39,16 @@ METEOR_FREQ   = 137_900_000   # Hz
 METEOR_SR     = 1_200_000     # Sps – 1.2 Msps räcker för LRPT 72 kbps QPSK
 MIN_ELEVATION = 10            # grader – lägre ger ofta dålig bild
 
+# Stödda Meteor-satelliter
+METEOR_SATELLITES = {
+    "1": {"name": "Meteor-M2-3", "tle_name": "METEOR-M2 3",
+          "note": "Lanserad juni 2023, primärt operativ"},
+    "2": {"name": "Meteor-M2-4", "tle_name": "METEOR-M2 4",
+          "note": "Lanserad feb 2024, fullt operativ"},
+    "3": {"name": "Meteor-M2-2", "tle_name": "METEOR-M 2-2",
+          "note": "Lanserad 2019, delvis operativ (antennproblem)"},
+}
+
 
 # ── Konfigurationsfil ─────────────────────────────────────────────────────────
 
@@ -173,7 +183,7 @@ def run_satdump_live(output_dir: Path, gain, ppm: int, timeout_s: int) -> subpro
                             text=True, bufsize=1)
 
 
-def countdown_and_record(p: dict, settings: dict):
+def countdown_and_record(p: dict, settings: dict, sat_name: str = "Meteor-M2-3"):
     """Vänta på AOS, spela in passet, avkoda med SatDump."""
     gain = settings.get("gain", 40)
     ppm  = settings.get("ppm",  0)
@@ -184,11 +194,12 @@ def countdown_and_record(p: dict, settings: dict):
     aos_local = p["aos"].astimezone().strftime("%H:%M:%S")
     los_local = p["los"].astimezone().strftime("%H:%M:%S")
 
-    ts = p["aos"].astimezone().strftime("%Y-%m-%d_%H%M")
-    output_dir = IMAGES_DIR / f"meteor_{ts}"
+    ts       = p["aos"].astimezone().strftime("%Y-%m-%d_%H%M")
+    slug     = sat_name.lower().replace(" ", "_").replace("-", "")
+    output_dir = IMAGES_DIR / f"{slug}_{ts}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n  🛰️  Meteor-M2-3  |  AOS {aos_local}  →  LOS {los_local}")
+    print(f"\n  🛰️  {sat_name}  |  AOS {aos_local}  →  LOS {los_local}")
     print(f"  Max elevation: {p['max_el']:.0f}°  |  Varaktighet: {p['dur_s']//60}m {p['dur_s']%60:02d}s")
     print(f"  Bilder sparas i: {output_dir}\n")
     print("─" * 55)
@@ -286,7 +297,7 @@ def run_satellite(settings: dict | None = None):
     settings = settings or {}
 
     print("\n" + "=" * 55)
-    print(" 🛰️  Meteor-M2-3 – Vädersatellitbilder (137.9 MHz)")
+    print(" 🛰️  Meteor LRPT – Vädersatellitbilder (137.9 MHz)")
     print(" LRPT QPSK  |  ~1 km/pixel  |  ~10 min per pass")
     print("=" * 55)
 
@@ -306,8 +317,8 @@ def run_satellite(settings: dict | None = None):
         return
 
     print("""
-  Meteor-M2-3 är en rysk vädersatellit i låg omloppsbana
-  (LEO, ~820 km). Den passerar varje plats ~4–6 ggr/dag
+  Meteor-satelliterna är ryska vädersatelliter i låg omloppsbana
+  (LEO, ~820 km). De passerar varje plats ~4–6 ggr/dag
   och varje pass varar 10–15 minuter.
 
   ⚠️  Antenn: En enkel 137 MHz dipol (~54 cm per arm)
@@ -315,6 +326,15 @@ def run_satellite(settings: dict | None = None):
       Den medföljande dongel-antennen kan fungera
       men ger sämre bildkvalitet.
 """)
+
+    # Satellitval
+    print("  Välj satellit:\n")
+    for key, s in METEOR_SATELLITES.items():
+        print(f"  {key}. {s['name']:<14}  {s['note']}")
+    print()
+    sat_val = input("  Val [1]: ").strip() or "1"
+    sat = METEOR_SATELLITES.get(sat_val, METEOR_SATELLITES["1"])
+    print(f"\n  Vald satellit: {sat['name']}")
 
     # Ladda/spara position
     cfg = load_config()
@@ -325,7 +345,7 @@ def run_satellite(settings: dict | None = None):
     elev = cfg.get("elevation", 0)
 
     # Hämta TLE
-    tle = fetch_tle(METEOR_NAME)
+    tle = fetch_tle(sat["tle_name"])
     if tle is None:
         return
 
@@ -340,7 +360,7 @@ def run_satellite(settings: dict | None = None):
         print("  Kontrollera att din position är korrekt.")
         return
 
-    print("  Nästa passager (min elevation >10°):\n")
+    print(f"  Nästa passager med {sat['name']} (min elevation >10°):\n")
     now = datetime.now(timezone.utc)
     for i, p in enumerate(passes):
         delta = p["aos"] - now
@@ -357,4 +377,4 @@ def run_satellite(settings: dict | None = None):
         idx = 0
 
     chosen = passes[idx]
-    countdown_and_record(chosen, settings)
+    countdown_and_record(chosen, settings, sat_name=sat["name"])

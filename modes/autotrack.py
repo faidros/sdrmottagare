@@ -35,29 +35,36 @@ def qual_symbol(elev: float) -> str:
 
 def sat_label(sat: str) -> str:
     return {
-        "iss":    "ISS",
-        "meteor": "Meteor-M2-3",
+        "iss":     "ISS",
+        "meteor3": "Meteor-M2-3",
+        "meteor4": "Meteor-M2-4",
+        # bakåtkompatibilitet om "meteor" dyker upp någonstans
+        "meteor":  "Meteor-M2-3",
     }.get(sat, sat.upper())
 
 
 def build_schedule(lat: float, lon: float, elev: int,
                    min_el: float, hours: int = 24) -> list:
-    from modes.satellite import fetch_tle as met_fetch, find_passes as met_passes, METEOR_NAME
+    from modes.satellite import fetch_tle as met_fetch, find_passes as met_passes, METEOR_SATELLITES
     from modes.iss import fetch_tle as iss_fetch, find_passes as iss_passes
 
     now    = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=hours)
     results = []
 
-    met_tle = met_fetch(METEOR_NAME)
-    if met_tle:
-        for p in met_passes(lat, lon, elev, met_tle, count=20):
-            if p["aos"] > cutoff:
-                break
-            if p["max_el"] >= min_el and p["aos"] >= now - timedelta(minutes=1):
-                results.append({**p, "sat": "meteor", "tle": met_tle})
-    else:
-        print("  Kunde inte hamta Meteor TLE.")
+    # Meteor-M2-3 och M2-4 (samma pipeline, samma frekvens – olika TLE)
+    for sat_key, sat_info in METEOR_SATELLITES.items():
+        tle_name = sat_info["tle_name"]
+        sat_id   = "meteor3" if "3" in sat_info["name"] else ("meteor4" if "4" in sat_info["name"] else f"meteor{sat_key}")
+        tle = met_fetch(tle_name)
+        if tle:
+            for p in met_passes(lat, lon, elev, tle, count=20):
+                if p["aos"] > cutoff:
+                    break
+                if p["max_el"] >= min_el and p["aos"] >= now - timedelta(minutes=1):
+                    results.append({**p, "sat": sat_id, "tle": tle, "sat_name": sat_info["name"]})
+        else:
+            print(f"  Kunde inte hämta TLE för {sat_info['name']}.")
 
     iss_tle = iss_fetch()
     if iss_tle:
@@ -65,9 +72,9 @@ def build_schedule(lat: float, lon: float, elev: int,
             if p["aos"] > cutoff:
                 break
             if p["max_el"] >= min_el and p["aos"] >= now - timedelta(minutes=1):
-                results.append({**p, "sat": "iss", "tle": iss_tle})
+                results.append({**p, "sat": "iss", "tle": iss_tle, "sat_name": "ISS"})
     else:
-        print("  Kunde inte hamta ISS TLE.")
+        print("  Kunde inte hämta ISS TLE.")
 
     results.sort(key=lambda x: x["aos"])
     return results
@@ -101,7 +108,7 @@ def run_autotrack(settings=None):
 
     print("\n" + "=" * 60)
     print(" Autotrack - automatisk satellitspaning (lage 12)")
-    print(" ISS (145 MHz) + Meteor-M2-3 (137.9 MHz)")
+    print(" ISS (145 MHz) + Meteor-M2-3 + Meteor-M2-4 (137.9 MHz)")
     print("=" * 60)
 
     if ephem is None:
@@ -167,7 +174,7 @@ def run_autotrack(settings=None):
             if p["sat"] == "iss":
                 iss_receive(p, settings)
             else:
-                met_receive(p, settings)
+                met_receive(p, settings, sat_name=p.get("sat_name", "Meteor-M2-3"))
             completed += 1
         except KeyboardInterrupt:
             print(f"\n\n  Autotrack avbruten efter {completed} avklarade pass.")
