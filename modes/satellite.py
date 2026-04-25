@@ -45,7 +45,7 @@ METEOR_SATELLITES = {
           "note": "Lanserad juni 2023, primärt operativ"},
     "2": {"name": "Meteor-M2-4", "tle_name": "METEOR-M2 4",
           "note": "Lanserad feb 2024, fullt operativ"},
-    "3": {"name": "Meteor-M2-2", "tle_name": "METEOR-M 2-2",
+    "3": {"name": "Meteor-M2-2", "tle_name": "METEOR-M2 2",
           "note": "Lanserad 2019, delvis operativ (antennproblem)"},
 }
 
