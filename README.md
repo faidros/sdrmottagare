@@ -19,6 +19,9 @@ Kör i terminalen och presenterar all information som text.
 | 10 | **🛰️ Meteor-M2-3** | 137.9 MHz | Vädersatellitbilder – PNG-filer på hårddisken (~1 km/pixel) |
 | 11 | **🛸 ISS APRS** | 145.825 MHz | APRS-paket från rymdstationen i realtid under varje pass |
 | 12 | **🔭 Autotrack** | 137–146 MHz | Automatisk spaning – schemalägger och spelar in alla satellitpass (ISS + Meteor) |
+| 13 | **📡 Inmarsat L-band** | 1537–1546 MHz | Maritima säkerhetsmeddelanden (EGC/NAVTEX) och ACARS-flygdata i klartext |
+| 14 | **🛰️ MetOp / Fengyun HRPT** | 1701 MHz | Högupplösta vädersatellitbilder – passberäkning + SatDump, kräver dish/patch |
+| 15 | **📡 Meteosat LRIT** | 1691 MHz | Geostationär vädersatellit – kontinuerliga bilder utan passberäkning, kräver dish |
 
 ---
 
@@ -27,6 +30,9 @@ Kör i terminalen och presenterar all information som text.
 - En **RTL-SDR-dongel** (R820T/R828D-baserad rekommenderas, kostar ~150–300 kr)
 - En antenn anpassad för aktuellt frekvensband (medföljer ofta dongeln)
 - USB-port
+
+> **Läge 13–15 (L-band, 1537–1701 MHz)** kräver dessutom en **LNA och riktad antenn**
+> (patch, helix eller parabolskål). Se respektive avsnitt längre ned.
 
 ---
 
@@ -53,8 +59,8 @@ Programmet använder två typer av beroenden:
 | Python-paket | `pyais` | NMEA-avkodning för AIS (läge 3) |
 | Python-paket | `numpy` | All signalbehandling |
 | Python-paket | `sounddevice` | Röstmottagning och järnväg (ljud) |
-| Python-paket | `ephem` | Passprediktion för Meteor-M2-3 och ISS (läge 10–11) |
-| Externt program | `satdump` | Meteor-M2-3 LRPT-avkodning → PNG-bilder (läge 10) |
+| Python-paket | `ephem` | Passprediktion för Meteor-M2-3, ISS, MetOp och Fengyun (läge 10–12, 14) |
+| Externt program | `satdump` | Meteor LRPT, HRPT och Meteosat LRIT-avkodning → PNG-bilder (läge 10, 14, 15) |
 | Externt program | `multimon-ng` | AFSK1200/APRS-avkodning för ISS (läge 11) |
 | Externt program | `acarsdec` | ACARS-avkodning (läge 4) |
 
@@ -316,6 +322,7 @@ sdrmottagare/
 ├── requirements.txt       # Python-beroenden
 ├── README.md
 └── modes/
+    ├── location.py        # Delad positionsinmatning (postnummer eller koordinater)
     ├── weather.py         # Vädersensorer 433 MHz  (via rtl_433)
     ├── adsb.py            # Flygtrafik ADS-B 1090 MHz  (via readsb)
     ├── ais.py             # Fartyg AIS 162 MHz  (via AIS-catcher)
@@ -327,8 +334,86 @@ sdrmottagare/
     ├── iot.py             # IoT-sniffning 868 MHz: LoRa/Z-Wave/M-Bus (rtl_433 + ren Python)
     ├── satellite.py       # Meteor-M2-3 vädersatellitbilder 137.9 MHz  (ephem + satdump)
     ├── iss.py             # ISS APRS 145.825 MHz  (ephem + rtl_fm + multimon-ng)
-    └── autotrack.py       # Autotrack – schemalägger och kör ISS+Meteor-pass automatiskt
+    ├── autotrack.py       # Autotrack – schemalägger och kör ISS+Meteor-pass automatiskt
+    ├── inmarsat.py        # Inmarsat L-band 1537–1546 MHz  (satdump, 5 pipelines)
+    ├── hrpt.py            # MetOp/Fengyun HRPT 1701 MHz  (ephem + satdump)
+    └── meteosat.py        # Meteosat LRIT 1691 MHz  (satdump, geostationär)
 ```
+
+---
+
+### 📡 Inmarsat L-band – maritima meddelanden och flygdata (läge 13)
+
+Inmarsat är ett nätverk av geostationära kommunikationssatelliter som sänder på **L-bandet (~1537–1546 MHz)**. Programmet stöder fem SatDump-pipelines:
+
+| # | Signal | Frekvens | Vad du får |
+|---|--------|----------|------------|
+| 1 | STD-C / EGC | 1537.5 MHz | Maritima säkerhetsmeddelanden – NAVTEX-liknande i klartext: sjöfartsvarningar, SAR-larm, väder |
+| 2 | AERO 0.6k | 1545.025 MHz | Flygplan ACARS-paket: reg.nr, label, meddelandetext |
+| 3 | AERO 1.2k | 1545.050 MHz | Flygplan ACARS – tätare dataström |
+| 4 | AERO 10.5k | 1545.940 MHz | Bredband ACARS – position, telemetri |
+| 5 | AERO-C 8.4k | 1545.940 MHz | Röstkanal – sparas som `audio.wav` (AMBE-dekoderat) |
+
+**Bästa satellit från Sverige:** Alphasat vid 25°E – elevation ~28°, azimut ~160° (SSO).
+
+**Data sparas i:** `~/sdr_data/inmarsat/<pipeline>_<tidsstämpel>/` som `.json`-filer per meddelande. Innehållet visas också i klartext i terminalen i realtid.
+
+**Hårdvarukrav:**
+- RTL-SDR v3/v4 klarar 1537 MHz utan problem
+- LNA rekommenderas (t.ex. Sawbird för 1.5 GHz)
+- Patch-antenn eller helix för L-band – vanlig dongelantenn ger svag signal
+
+---
+
+### 🛰️ MetOp / Fengyun-3 HRPT (läge 14)
+
+HRPT (High Resolution Picture Transmission) är ett L-band (1701 MHz) system som används av de europeiska **MetOp**-satelliterna (EUMETSAT) och kinesiska **Fengyun-3**. Bildkvaliteten är ~1 km/pixel med fem till sex spektralband.
+
+| Satellit | Frekvens | Pipeline | Notering |
+|----------|----------|----------|----------|
+| MetOp-C | 1701.3 MHz | `metop_hrpt` | Primär operativ MetOp |
+| MetOp-B | 1701.3 MHz | `metop_hrpt` | Backup MetOp |
+| Fengyun-3E | 1701.4 MHz | `fengyun3_hrpt` | Morgonorbit |
+| Fengyun-3D | 1701.4 MHz | `fengyun3_hrpt` | Eftermiddagsorbit |
+
+Flödet är identiskt med Meteor-M2-3: du väljer satellit → programmet beräknar passager, räknar ner och startar SatDump automatiskt vid AOS. Bilder sparas i `~/sdr_bilder/hrpt/`.
+
+**Hårdvarukrav – striktare än för Meteor:**
+- **RTL-SDR fungerar** men är nära sin övre frekvensgräns (~1.75 GHz). Airspy Mini (6 Msps) eller SDRplay ger avsevärt bättre resultat.
+- **LNA krävs** nära antennen – t.ex. Sawbird GOES eller annan 1.7 GHz LNA med ~20 dB förstärkning.
+- **Patch-antenn** (2×2-element, 1.7 GHz) eller parabolskål 30–60 cm. Vanlig dongelantenn fungerar inte.
+- **Manuell pekning** under hela passet (10–15 min) – antennen måste följa satelliten över himlen. Rotator gör det enklare.
+
+---
+
+### 📡 Meteosat LRIT (läge 15)
+
+Meteosat är ESA/EUMETSATs geostationära vädersatelliter i 36 000 km höjd. De sänder kontinuerligt LRIT (Low Rate Information Transmission) på **1691 MHz**. Eftersom de är geostationära behövs ingen passberäkning – antennen pekas en gång och du kan ta emot kontinuerligt.
+
+| Satellit | Position | Elevation från Sverige | Azimut |
+|----------|----------|------------------------|--------|
+| Meteosat-12 (MTG-I1) | 0° | ~28° | ~195° (SSV) |
+| Meteosat-11 | 3.4°V | ~27° | ~193° (SSV) |
+| Meteosat-10 | 9.5°E | ~27° | ~198° (SSV) |
+
+Programmet beräknar exakt elevation och azimut från din position och visar pekningsinstruktioner. Du väljer hur länge mottagning ska pågå (t.ex. 60 minuter). SatDump tar emot och sparar bilder var 10–15 minut under hela sessionen i `~/sdr_data/meteosat/`.
+
+**Hårdvarukrav:**
+- RTL-SDR v3/v4 klarar 1691 MHz
+- **LNA krävs** (bias-tee på RTL-SDR måste aktiveras, t.ex. `rtl_biast -b 1`)
+- Parabolskål 60–90 cm riktad mot söder, eller en riktad patch-antenn
+- Pipeline för Meteosat-12 (MTG-I1): `msg_lrit` (SatDump ≥ 1.2 – vid MTG-problem, prova `mtg_lrit`)
+
+---
+
+### 📍 Positionsangivelse – postnummer eller koordinater
+
+Lägen som kräver din position (Meteor-M2-3, ISS, Autotrack, MetOp/Fengyun, Meteosat) frågar vid första körningen var du befinner dig. Du kan ange:
+
+- **Postnummer** (5 siffror, t.ex. `11220`) – slår upp koordinater automatiskt från en inbyggd databas med 15 000+ svenska postnummer
+- **Koordinater** (decimal, t.ex. `59.33 18.07`) – används direkt
+
+Positionen sparas i `~/.sdrmottagare.json` och återanvänds automatiskt nästa gång.
 
 ---
 
