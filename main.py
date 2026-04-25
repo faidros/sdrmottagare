@@ -22,7 +22,7 @@ def menu_text() -> str:
     gain_str = f"{g} dB" if g != "auto" else "auto"
     return f"""
 ╔══════════════════════════════════════╗
-║         SDR Mottagare v1.9           ║
+║         SDR Mottagare v2.0           ║
 ╠══════════════════════════════════════╣
 ║  1. Vädersensorer    (433 MHz)       ║
 ║  2. Flygtrafik ADS-B (1090 MHz)      ║
@@ -37,6 +37,8 @@ def menu_text() -> str:
 ║ 11. 🛸 ISS APRS        (145 MHz)     ║
 ║ 12. 🔭 Autotrack ISS+Meteor         ║
 ║ 13. 📡 Inmarsat L-band (1537 MHz)   ║
+║ 14. 🛰️  MetOp/Fengyun HRPT (1701MHz) ║
+║ 15. 📡 Meteosat LRIT  (1691 MHz)    ║
 ╠══════════════════════════════════════╣
 ║  S. Inställningar                    ║
 ║  A. Avsluta                          ║
@@ -201,6 +203,12 @@ def main():
             elif val == "13":
                 from modes.inmarsat import run_inmarsat
                 run_inmarsat(settings=SETTINGS)
+            elif val == "14":
+                from modes.hrpt import run_hrpt
+                run_hrpt(settings=SETTINGS)
+            elif val == "15":
+                from modes.meteosat import run_meteosat
+                run_meteosat(settings=SETTINGS)
             elif val in ("s", "i"):
                 show_settings()
             elif val in ("a", "0", "q"):
