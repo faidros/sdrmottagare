@@ -16,8 +16,10 @@ Krav:
 
 import json
 import os
+import queue
 import ssl
 import subprocess
+import threading
 import sys
 import time
 import urllib.request
@@ -238,19 +240,38 @@ def countdown_and_record(p: dict, settings: dict, sat_name: str = "Meteor-M2-3")
 
     end_time = p["los"]
 
+    # ── Läs SatDump-output i bakgrundstråd (readline() blockerar annars timern) ──
+    output_q: queue.Queue = queue.Queue()
+
+    def _reader(proc, q):
+        for line in proc.stdout:
+            q.put(line)
+        q.put(None)   # Sentinel – signalerar att processen avslutats
+
+    threading.Thread(target=_reader, args=(proc, output_q), daemon=True).start()
+
     try:
         while True:
-            now = datetime.now(timezone.utc)
+            now    = datetime.now(timezone.utc)
             remain = (end_time - now).total_seconds()
 
-            # Läs eventuell output från satdump
-            line = proc.stdout.readline()
-            if line:
-                # Visa bara intressanta rader (inte debug-spam)
-                if any(kw in line for kw in ["Writing", "Decoded", "Image", "ERROR", "error"]):
-                    print(f"  {line.rstrip()}")
+            # Töm kön – visa (E)/(W)-rader och nyckelord, filtrera bort debug-spam
+            while True:
+                try:
+                    line = output_q.get_nowait()
+                except queue.Empty:
+                    break
+                if line is None:
+                    remain = 0   # Processen avslutades i förtid
+                    break
+                if any(kw in line for kw in ["(E)", "(W)", "Writing", "Decoded",
+                                              "Image", "Frame", "Viterbi", "Locked"]):
+                    print(f"\n  {line.rstrip()}")
 
             if remain <= 0:
+                # Kolla om satdump redan avslutats
+                if proc.poll() is not None and proc.returncode != 0:
+                    print(f"\n\n  ⚠️  SatDump avslutades med felkod {proc.returncode}")
                 break
 
             m2, s2 = divmod(int(remain), 60)

@@ -27,9 +27,11 @@ Krav på hårdvara:
 import json
 import os
 import shutil
+import queue
 import ssl
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 from datetime import datetime, timezone, timedelta
@@ -257,17 +259,35 @@ def countdown_and_record(p: dict, sat: dict, settings: dict):
 
     end_time = p["los"]
 
+    output_q: queue.Queue = queue.Queue()
+
+    def _reader(proc, q):
+        for line in proc.stdout:
+            q.put(line)
+        q.put(None)
+
+    threading.Thread(target=_reader, args=(proc, output_q), daemon=True).start()
+
     try:
         while True:
             now    = datetime.now(timezone.utc)
             remain = (end_time - now).total_seconds()
 
-            line = proc.stdout.readline()
-            if line:
-                if any(kw in line for kw in ["Writing", "Decoded", "Image", "ERROR", "error", "Frame"]):
-                    print(f"  {line.rstrip()}")
+            while True:
+                try:
+                    line = output_q.get_nowait()
+                except queue.Empty:
+                    break
+                if line is None:
+                    remain = 0
+                    break
+                if any(kw in line for kw in ["(E)", "(W)", "Writing", "Decoded",
+                                              "Image", "Frame", "Viterbi", "Locked"]):
+                    print(f"\n  {line.rstrip()}")
 
             if remain <= 0:
+                if proc.poll() is not None and proc.returncode != 0:
+                    print(f"\n\n  ⚠️  SatDump avslutades med felkod {proc.returncode}")
                 break
 
             m2, s2 = divmod(int(remain), 60)
