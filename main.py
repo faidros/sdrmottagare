@@ -9,7 +9,7 @@ import subprocess
 
 # ── Globala inställningar – delas av alla moduler ─────────────────────────────
 SETTINGS = {
-    "gain":         "auto",   # dB eller "auto"
+    "gain":         40,       # dB eller "auto"
     "squelch_db":   -40,      # dB, används av röstläget
     "ppm":          0,        # Frekvenskorrigering (parts per million)
 }
