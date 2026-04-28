@@ -42,7 +42,8 @@ ISS_NAME      = "ISS (ZARYA)"
 APRS_FREQ     = "145.825M"   # Hz – ARISS APRS nedlänk
 SSTV_FREQ     = "145.800M"   # Hz – ARISS SSTV (sporadiskt)
 MIN_ELEVATION = 10            # Minsta maxelevation för ett bra pass
-AUDIO_RATE    = 22050         # Hz – sampelfrekvens för FM-ljud
+AUDIO_RATE    = 22050         # Hz – output till multimon-ng (kräver 22050 Hz för -t raw)
+IQ_RATE       = 480000        # Hz – IQ-samplingsfrekvens för rtl_fm (ger bättre FM-demodulering)
 
 
 # ── Hjälpfunktioner ────────────────────────────────────────────────────────────
@@ -227,7 +228,7 @@ def receive_pass(p: dict, settings: dict):
     pass_dir   = make_pass_dir(p)
     jsonl_file = pass_dir / "aprs.jsonl"   # Maskinläsbar, ett JSON-objekt per rad
     txt_file   = pass_dir / "aprs.txt"     # Läsbar logg
-    audio_file = pass_dir / "audio.raw"    # Raw signed 16-bit 22050 Hz mono FM
+    audio_file = pass_dir / "audio.raw"    # Raw signed 16-bit 22050 Hz mono FM (IQ samplas vid 480 kHz)
 
     print(f"\n  🛸 ISS  |  AOS {aos_local}  →  LOS {los_local}")
     print(f"  Max elevation: {p['max_el']:.0f}°  |  Varaktighet: {p['dur_s']//60}m {p['dur_s']%60:02d}s")
@@ -266,9 +267,9 @@ def receive_pass(p: dict, settings: dict):
         "rtl_fm",
         "-f", APRS_FREQ,
         "-M", "fm",
-        "-s", str(AUDIO_RATE),
-        "-r", str(AUDIO_RATE),
-        "-g", str(int(gain)),
+        "-s", str(IQ_RATE),    # IQ-samplingsfrekvens (480 kHz → bättre filtrering)
+        "-r", str(AUDIO_RATE), # Resampla till 22050 Hz (multimon-ng kräver detta)
+        "-g", str(int(gain)),  # Manuell gain – stänger av hårdvaru-AGC
         "-p", str(int(ppm)),
     ]
     tee_cmd = ["tee", str(audio_file)]   # Skriver en kopia till disk, skickar vidare
