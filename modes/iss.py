@@ -214,6 +214,39 @@ def make_pass_dir(p: dict) -> Path:
     return d
 
 
+def _decode_audio_post(audio_file: Path, jsonl_file: Path, txt_file: Path) -> int:
+    """Avkoda audio.raw med multimon-ng i efterhand. Returnerar antal paket."""
+    try:
+        result = subprocess.run(
+            ["multimon-ng", "-t", "raw", "-q", "-a", "AFSK1200", str(audio_file)],
+            capture_output=True, text=True, timeout=120,
+        )
+        lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+        pkts = [parse_aprs(l) for l in lines]
+        pkts = [p for p in pkts if p]
+        if not pkts:
+            return 0
+        with open(jsonl_file, "a") as fj, open(txt_file, "a") as ft:
+            ft.write("\n── Post-pass avkodning av audio.raw ──\n")
+            for pkt in pkts:
+                record = {
+                    "time":    datetime.now().isoformat(),
+                    "from":    pkt["from"],
+                    "to":      pkt["to"],
+                    "path":    pkt["path"],
+                    "message": pkt["message"],
+                    "raw":     pkt.get("raw", ""),
+                    "source":  "post-decode",
+                }
+                fj.write(json.dumps(record, ensure_ascii=False) + "\n")
+                ft.write(f"[post]  {pkt['from']:<12}  {pkt['message']}\n")
+                print(f"  📦 {pkt['from']:<10}  {pkt['message']}")
+        return len(pkts)
+    except Exception as e:
+        print(f"  (post-avkodning misslyckades: {e})")
+        return 0
+
+
 def receive_pass(p: dict, settings: dict):
     """Vänta på AOS och ta emot APRS + spela in FM-ljud under passet."""
     import select
@@ -393,6 +426,16 @@ def receive_pass(p: dict, settings: dict):
         print(f"  📄 aprs.txt    – läsbar logg")
     else:
         print(f"  ⚠️  Inga APRS-paket togs emot under passet.")
+        # Försök avkoda audio.raw i efterhand
+        if audio_file.exists() and audio_file.stat().st_size > 0:
+            print(f"\n  🔄 Försöker avkoda audio.raw i efterhand...")
+            post_count = _decode_audio_post(audio_file, jsonl_file, txt_file)
+            if post_count > 0:
+                print(f"  ✅ Hittade {post_count} APRS-paket i inspelningen!")
+                print(f"  📄 aprs.jsonl  – {post_count} paket")
+                print(f"  📄 aprs.txt    – uppdaterad")
+            else:
+                print(f"  ❌ Inga paket hittades i audio.raw (svag signal eller ISS sände ej).")
 
     if audio_file.exists():
         kb = audio_file.stat().st_size // 1024
